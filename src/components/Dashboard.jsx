@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import ContactsView from './ContactsView';
+import Mensajeria from './Mensajeria'
 import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft } from 'lucide-react';
 import { mockElderProfile, mockRoutines } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
@@ -135,12 +136,12 @@ export default function Dashboard({ adminName = "ADMIN" }) {
                 </div>
               )}
 
-              {currentView === 'mensajes' && (
-                <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
-                  <MessageSquare className="w-12 h-12 text-purple-500 mb-3 animate-pulse" />
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Mensajería y TTS</h3>
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed">Esta sección está vacía. Aquí podrás transmitir mensajes de voz.</p>
-                </div>
+              {{currentView === 'mensajes' && (
+                <div className="bg-white border border-
+                  slate-100 rounded-3xl overflow-hidden 
+                  shadow-xs" style={{ minHeight: '600px' }}>
+                  <Mensajeria />
+                  </div>
               )}
 
               {currentView === 'biblioteca' && (
