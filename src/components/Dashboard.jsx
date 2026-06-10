@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import ContactsView from './ContactsView';
+import RoutinesView from './RoutinesView';
 import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft } from 'lucide-react';
 import { mockElderProfile, mockRoutines } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
@@ -8,6 +9,19 @@ import RoutinesProgressBar from './ui/RoutinesProgressBar';
 export default function Dashboard({ adminName = "ADMIN" }) {
   const [revealed, setRevealed] = useState(false);
   const [currentView, setCurrentView] = useState('home');
+  const [routines, setRoutines] = useState(() => 
+    mockRoutines.map(r => ({
+      id: r.id,
+      name: r.title || r.name,
+      repeat: r.repeat !== undefined ? r.repeat : true,
+      days: r.days || (r.id === 5 ? "Sá, Do" : (r.id === 2 ? "Lu, Ma, Mi, Ju, Vi" : "Todos los días")),
+      time: r.time,
+      description: r.desc || r.description || "",
+      status: r.status || "pending",
+      urgency: r.urgency || "medium",
+      category: r.category || "general"
+    }))
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -16,9 +30,9 @@ export default function Dashboard({ adminName = "ADMIN" }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const completedRoutines = mockRoutines.filter(r => r.status === 'completed').length;
-  const totalRoutines = mockRoutines.length;
-  const completionPercent = Math.round((completedRoutines / totalRoutines) * 100);
+  const completedRoutines = routines.filter(r => r.status === 'completed').length;
+  const totalRoutines = routines.length;
+  const completionPercent = totalRoutines > 0 ? Math.round((completedRoutines / totalRoutines) * 100) : 0;
 
   return (
     <div className="bg-slate-950 w-full min-h-screen overflow-hidden">
@@ -122,10 +136,8 @@ export default function Dashboard({ adminName = "ADMIN" }) {
 
               {/* Conditional Views content */}
               {currentView === 'rutinas' && (
-                <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
-                  <CalendarRange className="w-12 h-12 text-blue-500 mb-3 animate-pulse" />
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Gestión de Rutinas</h3>
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed">Esta sección está vacía. Pronto podrás programar medicamentos y actividades.</p>
+                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs">
+                  <RoutinesView routines={routines} setRoutines={setRoutines} />
                 </div>
               )}
 
