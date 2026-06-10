@@ -1,11 +1,86 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+<<<<<<< HEAD
 @theme {
   --font-sans: 'Outfit', sans-serif;
+=======
+/* Enables the `dark:` variant via a `.dark` class on a parent element instead of relying on prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Outfit', sans-serif;
+
+  --color-prussian-blue-50: #ecf0f8;
+  --color-prussian-blue-100: #dae1f1;
+  --color-prussian-blue-200: #b4c2e4;
+  --color-prussian-blue-300: #8fa4d6;
+  --color-prussian-blue-400: #6986c9;
+  --color-prussian-blue-500: #4468bb;
+  --color-prussian-blue-600: #365396;
+  --color-prussian-blue-700: #293e70;
+  --color-prussian-blue-800: #1b294b;
+  --color-prussian-blue-900: #0e1525;
+  --color-prussian-blue-950: #090e1a;
+
+  --color-baltic-blue-50: #e5f5ff;
+  --color-baltic-blue-100: #ccebff;
+  --color-baltic-blue-200: #99d6ff;
+  --color-baltic-blue-300: #66c2ff;
+  --color-baltic-blue-400: #33adff;
+  --color-baltic-blue-500: #0099ff;
+  --color-baltic-blue-600: #007acc;
+  --color-baltic-blue-700: #005c99;
+  --color-baltic-blue-800: #003d66;
+  --color-baltic-blue-900: #001f33;
+  --color-baltic-blue-950: #001524;
+
+  --color-verdigris-50: #ebfaf8;
+  --color-verdigris-100: #d7f4f1;
+  --color-verdigris-200: #aeeae3;
+  --color-verdigris-300: #86dfd5;
+  --color-verdigris-400: #5ed4c6;
+  --color-verdigris-500: #36c9b8;
+  --color-verdigris-600: #2ba193;
+  --color-verdigris-700: #20796f;
+  --color-verdigris-800: #15514a;
+  --color-verdigris-900: #0b2825;
+  --color-verdigris-950: #071c1a;
+
+  --color-chocolate-50: #fbf0e9;
+  --color-chocolate-100: #f8e1d3;
+  --color-chocolate-200: #f0c4a8;
+  --color-chocolate-300: #e9a67c;
+  --color-chocolate-400: #e18851;
+  --color-chocolate-500: #da6a25;
+  --color-chocolate-600: #ae551e;
+  --color-chocolate-700: #834016;
+  --color-chocolate-800: #572b0f;
+  --color-chocolate-900: #2c1507;
+  --color-chocolate-950: #1f0f05;
+
+  --color-rose-wine-50: #f9ecf0;
+  --color-rose-wine-100: #f3d8e1;
+  --color-rose-wine-200: #e6b2c3;
+  --color-rose-wine-300: #da8ba5;
+  --color-rose-wine-400: #cd6588;
+  --color-rose-wine-500: #c13e6a;
+  --color-rose-wine-600: #9a3255;
+  --color-rose-wine-700: #74253f;
+  --color-rose-wine-800: #4d192a;
+  --color-rose-wine-900: #270c15;
+  --color-rose-wine-950: #1b090f;
+>>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 }
 
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--color-slate-50);
 }
+<<<<<<< HEAD
+=======
+
+.dark body {
+  background-color: var(--color-prussian-blue-950);
+}
+>>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)

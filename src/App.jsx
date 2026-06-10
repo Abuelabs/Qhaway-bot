@@ -11,8 +11,17 @@ function App() {
     setIsLoggedIn(true)
   }
 
+<<<<<<< HEAD
   return isLoggedIn ? (
     <Dashboard adminName={username} />
+=======
+  const handleLogout = () => {
+    setIsLoggedIn(false)
+  }
+
+  return isLoggedIn ? (
+    <Dashboard adminName={username} onLogout={handleLogout} />
+>>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
   ) : (
     <Login onLoginSuccess={handleLoginSuccess} />
   )

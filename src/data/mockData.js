@@ -109,6 +109,147 @@ export const mockSosContacts = [
   }
 ];
 
+<<<<<<< HEAD
+=======
+export const mockElderProfiles = [
+  {
+    id: 1,
+    name: "Abuelito",
+    age: 78,
+    condition: "Hipertensión y Leve pérdida de memoria",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+    deviceStatus: "Conectado",
+    room: "Sala Principal"
+  },
+  {
+    id: 2,
+    name: "Abuelita Rosa",
+    age: 82,
+    condition: "Diabetes tipo 2 y artritis",
+    avatar: "https://images.unsplash.com/photo-1581579438747-104c53d7fbc4?auto=format&fit=crop&w=256&q=80",
+    deviceStatus: "Conectado",
+    room: "Habitación Principal"
+  }
+];
+
+export const mockRoutinesByElder = {
+  1: mockRoutines,
+  2: [
+    {
+      id: 1,
+      time: "07:30",
+      title: "Medición de glucosa",
+      desc: "Control de glucosa en ayunas con glucómetro digital",
+      status: "completed",
+      urgency: "high",
+      category: "medicina",
+      completedAt: "07:35"
+    },
+    {
+      id: 2,
+      time: "08:00",
+      title: "Desayuno + Metformina",
+      desc: "Desayuno bajo en azúcar y Metformina (850mg)",
+      status: "completed",
+      urgency: "high",
+      category: "alimentacion",
+      completedAt: "08:10"
+    },
+    {
+      id: 3,
+      time: "11:00",
+      title: "Ejercicios de movilidad",
+      desc: "Estiramientos suaves para manos y rodillas",
+      status: "pending",
+      urgency: "medium",
+      category: "ejercicio"
+    },
+    {
+      id: 4,
+      time: "16:00",
+      title: "Medición de presión",
+      desc: "Control de presión arterial con tensiómetro digital",
+      status: "pending",
+      urgency: "medium",
+      category: "medicina"
+    },
+    {
+      id: 5,
+      time: "20:00",
+      title: "Cena + Insulina",
+      desc: "Cena ligera y aplicación de insulina nocturna",
+      status: "pending",
+      urgency: "high",
+      category: "medicina"
+    }
+  ]
+};
+
+export const mockVitalsByElder = {
+  1: {
+    heartRate: 72,
+    bloodPressure: "128/82",
+    spo2: 97,
+    temperature: 36.5,
+    sleepHours: 6.5,
+    steps: 1240,
+    lastUpdated: "Hace 5 minutos"
+  },
+  2: {
+    heartRate: 80,
+    bloodPressure: "135/88",
+    spo2: 96,
+    temperature: 36.7,
+    sleepHours: 7.2,
+    steps: 860,
+    lastUpdated: "Hace 12 minutos"
+  }
+};
+
+export const mockNotifications = [
+  {
+    id: 1,
+    type: "alert",
+    title: "Posible caída detectada",
+    message: "Qhawaybot detectó un movimiento brusco en el pasillo. Verificación automática en curso.",
+    time: "Hace 8 minutos",
+    read: false
+  },
+  {
+    id: 2,
+    type: "warning",
+    title: "Medicamento pendiente",
+    message: "La 'Medicina para la circulación' aún no ha sido confirmada (14:00).",
+    time: "Hace 25 minutos",
+    read: false
+  },
+  {
+    id: 3,
+    type: "warning",
+    title: "Batería de sensor baja",
+    message: "El sensor de la puerta principal tiene 15% de batería restante.",
+    time: "Hace 1 hora",
+    read: false
+  },
+  {
+    id: 4,
+    type: "success",
+    title: "Rutina completada",
+    message: "'Caminata matutina' finalizada con éxito.",
+    time: "Hace 3 horas",
+    read: true
+  },
+  {
+    id: 5,
+    type: "info",
+    title: "Llamada familiar programada",
+    message: "Qhawaybot iniciará una videollamada automática a las 17:00.",
+    time: "Hace 4 horas",
+    read: true
+  }
+];
+
+>>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 export const mockActivityLogs = [
   {
     id: 1,
