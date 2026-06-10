@@ -138,8 +138,8 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     if (!formData.time) {
       newErrors.time = 'La hora de la rutina es requerida.';
     }
-    if (formData.repeat && formData.selectedDays.length === 0) {
-      newErrors.selectedDays = 'Debes seleccionar al menos un día para repetir.';
+    if (formData.selectedDays.length === 0) {
+      newErrors.selectedDays = 'Debes seleccionar al menos un día para la rutina.';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -152,25 +152,23 @@ export default function RoutinesView({ routines = [], setRoutines }) {
 
     // Format days representation
     let daysString = 'No aplica';
-    if (formData.repeat) {
-      if (formData.selectedDays.length === 7) {
-        daysString = 'Todos los días';
-      } else if (
-        formData.selectedDays.length === 5 && 
-        ['Lu', 'Ma', 'Mi', 'Ju', 'Vi'].every(d => formData.selectedDays.includes(d))
-      ) {
-        daysString = 'Lunes a Viernes';
-      } else if (
-        formData.selectedDays.length === 2 && 
-        ['Sá', 'Do'].every(d => formData.selectedDays.includes(d))
-      ) {
-        daysString = 'Fines de semana';
-      } else {
-        // Order days correctly (mon to sun)
-        const order = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
-        const sortedDays = [...formData.selectedDays].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-        daysString = sortedDays.join(', ');
-      }
+    if (formData.selectedDays.length === 7) {
+      daysString = 'Todos los días';
+    } else if (
+      formData.selectedDays.length === 5 && 
+      ['Lu', 'Ma', 'Mi', 'Ju', 'Vi'].every(d => formData.selectedDays.includes(d))
+    ) {
+      daysString = 'Lunes a Viernes';
+    } else if (
+      formData.selectedDays.length === 2 && 
+      ['Sá', 'Do'].every(d => formData.selectedDays.includes(d))
+    ) {
+      daysString = 'Fines de semana';
+    } else if (formData.selectedDays.length > 0) {
+      // Order days correctly (mon to sun)
+      const order = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+      const sortedDays = [...formData.selectedDays].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+      daysString = sortedDays.join(', ');
     }
 
     if (selectedRoutine) {
@@ -297,8 +295,8 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       key: 'days',
       label: 'Día(s)',
       render: (value, row) => (
-        <span className={`font-semibold text-xs ${!row.repeat ? 'text-slate-400' : 'text-slate-700'}`}>
-          {value}
+        <span className={`font-semibold text-xs ${!row.repeat ? 'text-slate-400 font-medium' : 'text-slate-700'}`}>
+          {value} {!row.repeat && <span className="text-[10px] font-normal text-slate-400 italic">(Solo una vez)</span>}
         </span>
       )
     },
@@ -507,38 +505,36 @@ export default function RoutinesView({ routines = [], setRoutines }) {
                 </button>
               </div>
 
-              {/* Day selection (conditional) */}
-              {formData.repeat && (
-                <div className="space-y-2.5 p-1">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Días de la semana *
-                  </label>
-                  <div className="flex justify-between gap-1.5">
-                    {WEEKDAYS.map(day => {
-                      const isSelected = formData.selectedDays.includes(day.key);
-                      return (
-                        <button
-                          key={day.key}
-                          type="button"
-                          onClick={() => handleToggleDay(day.key)}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all border cursor-pointer ${
-                            isSelected
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-xs hover:bg-blue-700'
-                              : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50'
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {errors.selectedDays && (
-                    <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
-                      <AlertCircle className="w-3.5 h-3.5" /> {errors.selectedDays}
-                    </p>
-                  )}
+              {/* Day selection */}
+              <div className="space-y-2.5 p-1">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Días de la semana *
+                </label>
+                <div className="flex justify-between gap-1.5">
+                  {WEEKDAYS.map(day => {
+                    const isSelected = formData.selectedDays.includes(day.key);
+                    return (
+                      <button
+                        key={day.key}
+                        type="button"
+                        onClick={() => handleToggleDay(day.key)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all border cursor-pointer ${
+                          isSelected
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs hover:bg-blue-700'
+                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+                {errors.selectedDays && (
+                  <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                    <AlertCircle className="w-3.5 h-3.5" /> {errors.selectedDays}
+                  </p>
+                )}
+              </div>
 
               {/* Description */}
               <div className="space-y-1.5">
