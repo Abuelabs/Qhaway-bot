@@ -5,7 +5,7 @@ import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft } from 'lucide
 import { mockElderProfile, mockRoutines } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 
-export default function Dashboard({ adminName = "Harlins Gálvez" }) {
+export default function Dashboard({ adminName = "ADMIN" }) {
   const [revealed, setRevealed] = useState(false);
   const [currentView, setCurrentView] = useState('home');
 
@@ -40,7 +40,7 @@ export default function Dashboard({ adminName = "Harlins Gálvez" }) {
               <div className="text-center max-w-3xl mx-auto mb-8 -mt-2.5 flex flex-col items-center">
                 <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">Estamos cuidando a {mockElderProfile.name}</h2>
                 <p className="text-slate-500 text-sm sm:text-base mt-3">Selecciona un panel a continuación para gestionar los servicios de Qhawaybot.</p>
-                
+
                 {/* Reusable UI Progress Bar */}
                 <RoutinesProgressBar completed={completedRoutines} total={totalRoutines} />
               </div>

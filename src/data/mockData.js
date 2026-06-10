@@ -1,5 +1,5 @@
 export const mockElderProfile = {
-  name: "Manuel Gálvez",
+  name: "Abuelito",
   age: 78,
   condition: "Hipertensión y Leve pérdida de memoria",
   avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80", // Premium avatar placeholder
@@ -8,7 +8,7 @@ export const mockElderProfile = {
 };
 
 export const mockRobotStatus = {
-  name: "Qhawaybot V2",
+  name: "Qhawaybot V1",
   serialNumber: "QB-2026-9941",
   online: true,
   battery: 85,
@@ -95,7 +95,7 @@ export const mockSosContacts = [
   },
   {
     id: 2,
-    name: "Harlins Gálvez (Hijo)",
+    name: "Hijo",
     relation: "Familiar Administrador",
     phone: "+51 912 345 678",
     available: true,
