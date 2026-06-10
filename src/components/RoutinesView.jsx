@@ -245,12 +245,12 @@ export default function RoutinesView({ routines = [], setRoutines }) {
             onClick={() => handleToggleStatus(row)}
             className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer ${
               row.status === 'completed' 
-                ? 'bg-blue-600 border-blue-600 text-white' 
-                : 'border-slate-300 hover:border-blue-500 bg-white'
+                ? 'bg-red-600 border-red-600 text-white' 
+                : 'border-slate-300 hover:border-red-500 bg-white'
             }`}
-            title={row.status === 'completed' ? 'Marcar como pendiente' : 'Marcar como completada'}
+            title={row.status === 'completed' ? 'Marcar como activa' : 'Marcar como completada/deshabilitada'}
           >
-            {row.status === 'completed' && <Check className="w-3.5 h-3.5" />}
+            {row.status === 'completed' && <X className="w-3.5 h-3.5" />}
           </button>
           <span className={`font-bold block tracking-tight ${row.status === 'completed' ? 'line-through text-slate-400 font-medium' : 'text-slate-900'}`}>
             {value}
