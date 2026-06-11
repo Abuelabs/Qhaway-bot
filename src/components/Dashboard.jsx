@@ -7,7 +7,6 @@ import ProfilePanel from './ProfilePanel';
 import RobotStatusView from './RobotStatusView';
 import HealthView from './HealthView';
 import ActivityLogView from './ActivityLogView';
-import RadialSidebar from './RadialSidebar';
 import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethoscope, History, ChevronDown } from 'lucide-react';
 import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
@@ -339,9 +338,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
           )}
 
         </main>
-
-        {/* Floating Radial Navigation Sidebar */}
-        <RadialSidebar currentView={currentView} onViewChange={setCurrentView} />
       </div>
     </div>
   );
