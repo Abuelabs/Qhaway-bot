@@ -604,7 +604,7 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       key: 'id',
       label: 'ID',
       render: (value) => (
-        <span className="text-slate-400 font-mono text-xs select-none">#{value}</span>
+        <span className="text-slate-400 dark:text-prussian-blue-500 font-mono text-xs select-none">#{value}</span>
       )
     },
     {
@@ -618,18 +618,18 @@ export default function RoutinesView({ routines = [], setRoutines }) {
             <button
               onClick={() => handleToggleStatus(row)}
               className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer ${
-                row.status === 'completed' 
-                  ? 'bg-red-600 border-red-600 text-white' 
+                row.status === 'completed'
+                  ? 'bg-red-600 border-red-600 text-white'
                   : isOverdue
-                    ? 'border-amber-400 hover:border-red-500 bg-amber-50 dark:bg-amber-950/20'
-                    : 'border-slate-300 hover:border-red-500 bg-white'
+                    ? 'border-amber-400 dark:border-amber-600 hover:border-red-500 bg-amber-50 dark:bg-amber-950/20'
+                    : 'border-slate-300 dark:border-prussian-blue-600 hover:border-red-500 bg-white dark:bg-prussian-blue-800'
               }`}
               title={row.status === 'completed' ? 'Marcar como activa' : 'Marcar como completada/deshabilitada'}
             >
               {row.status === 'completed' && <X className="w-3.5 h-3.5" />}
             </button>
             <div className="flex flex-col">
-              <span className={`font-bold block tracking-tight ${row.status === 'completed' ? 'line-through text-slate-400 font-medium' : 'text-slate-900'}`}>
+              <span className={`font-bold block tracking-tight ${row.status === 'completed' ? 'line-through text-slate-400 dark:text-prussian-blue-500 font-medium' : 'text-slate-900 dark:text-white'}`}>
                 {value}
               </span>
               {isOverdue && (
@@ -651,11 +651,11 @@ export default function RoutinesView({ routines = [], setRoutines }) {
         const isFood = value === 'alimentacion';
         const isSocial = value === 'social';
         
-        let colorClass = 'bg-slate-100 text-slate-700';
-        if (isMed) colorClass = 'bg-rose-50 text-rose-700 border border-rose-100';
-        else if (isExer) colorClass = 'bg-sky-50 text-sky-700 border border-sky-100';
-        else if (isFood) colorClass = 'bg-amber-50 text-amber-700 border border-amber-100';
-        else if (isSocial) colorClass = 'bg-violet-50 text-violet-700 border border-violet-100';
+        let colorClass = 'bg-slate-100 text-slate-700 dark:bg-prussian-blue-800 dark:text-prussian-blue-300';
+        if (isMed) colorClass = 'bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-wine-950 dark:text-rose-wine-300 dark:border-rose-wine-800';
+        else if (isExer) colorClass = 'bg-sky-50 text-sky-700 border border-sky-100 dark:bg-baltic-blue-950 dark:text-baltic-blue-300 dark:border-baltic-blue-800';
+        else if (isFood) colorClass = 'bg-amber-50 text-amber-700 border border-amber-100 dark:bg-chocolate-950 dark:text-chocolate-300 dark:border-chocolate-800';
+        else if (isSocial) colorClass = 'bg-violet-50 text-violet-700 border border-violet-100 dark:bg-violet-950 dark:text-violet-300 dark:border-violet-800';
 
         return (
           <span className={`inline-block text-xs font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider ${colorClass} ${row.status === 'completed' ? 'opacity-60' : ''}`}>
@@ -709,8 +709,8 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       key: 'time',
       label: 'Hora',
       render: (value, row) => (
-        <span className={`inline-flex items-center gap-1 text-sm font-bold ${row.status === 'completed' ? 'text-slate-400' : 'text-slate-900'}`}>
-          <Clock className="w-3.5 h-3.5 text-blue-500" />
+        <span className={`inline-flex items-center gap-1 text-sm font-bold ${row.status === 'completed' ? 'text-slate-400 dark:text-prussian-blue-500' : 'text-slate-900 dark:text-white'}`}>
+          <Clock className="w-3.5 h-3.5 text-blue-500 dark:text-baltic-blue-400" />
           {value}
         </span>
       )
@@ -719,8 +719,8 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       key: 'description',
       label: 'Descripción',
       render: (value, row) => (
-        <span className={`text-xs block max-w-xs leading-relaxed ${row.status === 'completed' ? 'text-slate-400 font-normal' : 'text-slate-500 font-medium'}`}>
-          {value || <span className="italic text-slate-300">Sin descripción</span>}
+        <span className={`text-xs block max-w-xs leading-relaxed ${row.status === 'completed' ? 'text-slate-400 dark:text-prussian-blue-500 font-normal' : 'text-slate-500 dark:text-prussian-blue-300 font-medium'}`}>
+          {value || <span className="italic text-slate-300 dark:text-prussian-blue-600">Sin descripción</span>}
         </span>
       )
     },
@@ -729,16 +729,16 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       label: 'Acciones',
       render: (_, row) => (
         <div className="flex items-center gap-1.5">
-          <button 
-            onClick={() => handleOpenEdit(row)} 
-            className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-600 rounded-xl transition cursor-pointer"
+          <button
+            onClick={() => handleOpenEdit(row)}
+            className="p-1.5 hover:bg-slate-100 dark:hover:bg-prussian-blue-800 text-slate-500 dark:text-prussian-blue-400 hover:text-blue-600 dark:hover:text-baltic-blue-400 rounded-xl transition cursor-pointer"
             title="Editar Rutina"
           >
             <Edit2 className="w-4 h-4" />
           </button>
-          <button 
-            onClick={() => handleOpenDelete(row)} 
-            className="p-1.5 hover:bg-red-50 text-slate-500 hover:text-red-600 rounded-xl transition cursor-pointer"
+          <button
+            onClick={() => handleOpenDelete(row)}
+            className="p-1.5 hover:bg-red-50 dark:hover:bg-rose-wine-950 text-slate-500 dark:text-prussian-blue-400 hover:text-red-600 dark:hover:text-rose-wine-400 rounded-xl transition cursor-pointer"
             title="Eliminar Rutina"
           >
             <Trash2 className="w-4 h-4" />
@@ -777,11 +777,11 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 tracking-tight">
-            <CalendarRange className="w-6 h-6 text-blue-600" />
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+            <CalendarRange className="w-6 h-6 text-blue-600 dark:text-baltic-blue-400" />
             Gestión de Rutinas Diarias
           </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-400 dark:text-prussian-blue-400 mt-0.5">
             Configura las alarmas, medicamentos y recordatorios autónomos que Qhawaybot emitirá.
           </p>
         </div>
@@ -796,7 +796,7 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       </div>
 
       {/* Control Panel (Filters and Search) */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white border border-slate-100 p-4 rounded-3xl shadow-xs">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 bg-white dark:bg-prussian-blue-800/40 border border-slate-100 dark:border-prussian-blue-800 p-4 rounded-3xl shadow-xs">
         <SearchBar 
           placeholder="Buscar por nombre o descripción..." 
           value={searchTerm} 
@@ -837,36 +837,36 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       {/* CREATE / EDIT MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white border border-slate-100 rounded-3xl w-full max-w-lg shadow-xl overflow-hidden animate-scale-in">
+          <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl w-full max-w-lg shadow-xl overflow-hidden animate-scale-in max-h-[90vh] flex flex-col">
             {/* Modal Header */}
-            <div className="bg-slate-50 border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base tracking-tight flex items-center gap-2">
-                <CalendarRange className="w-5 h-5 text-blue-600" />
+            <div className="bg-slate-50 dark:bg-prussian-blue-800/40 border-b border-slate-100 dark:border-prussian-blue-800 px-6 py-4 flex items-center justify-between flex-shrink-0">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base tracking-tight flex items-center gap-2">
+                <CalendarRange className="w-5 h-5 text-blue-600 dark:text-baltic-blue-400" />
                 {selectedRoutine ? 'Editar Rutina' : 'Nueva Rutina'}
               </h3>
-              <button 
+              <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1 hover:bg-slate-200/50 rounded-lg transition cursor-pointer"
+                className="text-slate-400 dark:text-prussian-blue-400 hover:text-slate-700 dark:hover:text-white p-1 hover:bg-slate-200/50 dark:hover:bg-prussian-blue-700/50 rounded-lg transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm text-slate-600">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 text-sm text-slate-600 dark:text-prussian-blue-300 overflow-y-auto flex-1">
               
               {/* Routine Name */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
                   Nombre de la Rutina *
                 </label>
-                <input 
+                <input
                   type="text"
                   placeholder="Ej. Medicina de la presión, Caminata, etc."
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full bg-white border rounded-2xl px-4 py-2.5 text-slate-800 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition ${
-                    errors.name ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200'
+                  className={`w-full bg-white dark:bg-prussian-blue-800 border rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition ${
+                    errors.name ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200 dark:border-prussian-blue-700'
                   }`}
                 />
                 {errors.name && (
@@ -880,16 +880,16 @@ export default function RoutinesView({ routines = [], setRoutines }) {
               <div className="grid grid-cols-2 gap-4">
                 {/* Time */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
                     Hora de ejecución *
                   </label>
                   <div className="relative">
-                    <input 
+                    <input
                       type="time"
                       value={formData.time}
                       onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                      className={`w-full bg-white border rounded-2xl px-4 py-2.5 text-slate-800 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition ${
-                        errors.time ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200'
+                      className={`w-full bg-white dark:bg-prussian-blue-800 border rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition ${
+                        errors.time ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200 dark:border-prussian-blue-700'
                       }`}
                     />
                   </div>
@@ -902,13 +902,13 @@ export default function RoutinesView({ routines = [], setRoutines }) {
 
                 {/* Category */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
                     Categoría
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-slate-800 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition cursor-pointer"
+                    className="w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition cursor-pointer"
                   >
                     <option value="medicina">Medicina</option>
                     <option value="ejercicio">Ejercicio</option>
@@ -930,7 +930,7 @@ export default function RoutinesView({ routines = [], setRoutines }) {
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => handleStartDateChange(e.target.value)}
-                    className={`w-full bg-white dark:bg-prussian-blue-850 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition ${
+                    className={`w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition ${
                       errors.startDate ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200 dark:border-prussian-blue-700'
                     }`}
                   />
@@ -951,7 +951,7 @@ export default function RoutinesView({ routines = [], setRoutines }) {
                     value={formData.endDate}
                     min={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    className="w-full bg-white dark:bg-prussian-blue-850 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition border-slate-200 dark:border-prussian-blue-700"
+                    className="w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition border-slate-200 dark:border-prussian-blue-700"
                   />
                 </div>
               </div>
@@ -1270,24 +1270,24 @@ export default function RoutinesView({ routines = [], setRoutines }) {
 
               {/* Description */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
                   Descripción / Instrucciones
                 </label>
-                <textarea 
+                <textarea
                   placeholder="Detalles de la rutina (ej. Dosis, lugar, detalles adicionales)..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-2.5 text-slate-800 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition resize-none"
+                  className="w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition resize-none"
                 />
               </div>
 
               {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-prussian-blue-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 rounded-2xl text-xs font-bold transition duration-150 cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 dark:bg-prussian-blue-800 hover:bg-slate-200 dark:hover:bg-prussian-blue-700 text-slate-600 dark:text-prussian-blue-300 hover:text-slate-800 dark:hover:text-white rounded-2xl text-xs font-bold transition duration-150 cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1307,18 +1307,18 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       {/* CONFIRM DELETE MODAL */}
       {isDeleteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white border border-slate-100 rounded-3xl w-full max-w-md shadow-xl overflow-hidden animate-scale-in p-6">
-            <h3 className="font-bold text-slate-900 text-base mb-2 tracking-tight flex items-center gap-2">
+          <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl w-full max-w-md shadow-xl overflow-hidden animate-scale-in p-6">
+            <h3 className="font-bold text-slate-900 dark:text-white text-base mb-2 tracking-tight flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-500" />
               ¿Confirmar eliminación?
             </h3>
-            <p className="text-xs text-slate-500 leading-relaxed mb-6">
-              ¿Estás seguro de que deseas eliminar la rutina <span className="font-bold text-slate-800">"{routineToDelete?.name}"</span>? Esta acción no se puede deshacer y Qhawaybot dejará de emitir este recordatorio.
+            <p className="text-xs text-slate-500 dark:text-prussian-blue-300 leading-relaxed mb-6">
+              ¿Estás seguro de que deseas eliminar la rutina <span className="font-bold text-slate-800 dark:text-white">"{routineToDelete?.name}"</span>? Esta acción no se puede deshacer y Qhawaybot dejará de emitir este recordatorio.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setIsDeleteOpen(false)}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-slate-100 dark:bg-prussian-blue-800 hover:bg-slate-200 dark:hover:bg-prussian-blue-700 text-slate-600 dark:text-prussian-blue-300 hover:text-slate-800 dark:hover:text-white rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 No, cancelar
               </button>
