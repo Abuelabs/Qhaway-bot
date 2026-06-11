@@ -4,48 +4,46 @@ import { useLanguage } from '../context/LanguageContext';
 
 export default function RadialSidebar({ currentView, onViewChange }) {
   const { t } = useLanguage();
-  const [mouseNear, setMouseNear] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
-  const leaveTimerRef = useRef(null);
+  const [buttonY, setButtonY] = useState(window.innerHeight / 2 - 24);
 
   // Update window height on resize to keep the middle vertical position accurate
   useEffect(() => {
-    const handleResize = () => setWindowHeight(window.innerHeight);
+    const handleResize = () => {
+      const newHeight = window.innerHeight;
+      setWindowHeight(newHeight);
+      setButtonY(newHeight / 2 - 24);
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Proximity hover detector
+  // Proximity tracking to slide the button vertically
   useEffect(() => {
+    if (isOpen) return;
+
     const handleMouseMove = (e) => {
-      if (isOpen) return;
-      
-      // If mouse is within 120px of the left edge of the screen, show the bubble
-      if (e.clientX < 120) {
-        setMouseNear(true);
+      const bubbleSize = 48;
+      const bubbleRadius = bubbleSize / 2;
+
+      // If mouse is within 300px of the left edge of the screen, follow its Y position
+      if (e.clientX < 300) {
+        const minY = 80;
+        const maxY = windowHeight - bubbleSize - 20;
+        const targetY = Math.max(minY, Math.min(maxY, e.clientY - bubbleRadius));
+        setButtonY(targetY);
       } else {
-        setMouseNear(false);
+        // Return to vertical center
+        setButtonY(windowHeight / 2 - bubbleRadius);
       }
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [isOpen]);
+  }, [isOpen, windowHeight]);
 
-  // Collapse menu after some time when the mouse leaves the menu area
-  const handleMouseLeave = () => {
-    if (!isOpen) return;
-    leaveTimerRef.current = setTimeout(() => {
-      setIsOpen(false);
-    }, 1500); // 1.5s delay
-  };
-
-  const handleMouseEnter = () => {
-    if (leaveTimerRef.current) {
-      clearTimeout(leaveTimerRef.current);
-    }
-  };
+  // Persists when open until clicked outside
 
   // Close menu if user clicks anywhere outside the radial menu container
   useEffect(() => {
@@ -71,7 +69,6 @@ export default function RadialSidebar({ currentView, onViewChange }) {
   const toggleOpen = (e) => {
     e.stopPropagation();
     setIsOpen(!isOpen);
-    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
   };
 
   // Shortcut items setup
@@ -88,9 +85,9 @@ export default function RadialSidebar({ currentView, onViewChange }) {
   // Dimensional config for positioning
   const bubbleSize = 48; // Size of the main bubble (w-12 h-12)
   const anchorLeft = isOpen ? 16 : 20; // px from left edge
-  
+
   // Vertical position: top-left (80px, below the 64px navbar) when open, centered vertically when closed
-  const anchorTop = isOpen ? 80 : (windowHeight / 2 - bubbleSize / 2);
+  const anchorTop = isOpen ? 80 : buttonY;
 
   // Center coordinate of the main bubble
   const centerX = anchorLeft + bubbleSize / 2;
@@ -99,26 +96,24 @@ export default function RadialSidebar({ currentView, onViewChange }) {
   return (
     <div
       id="radial-sidebar-container"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
       className="fixed inset-0 pointer-events-none z-50"
     >
       {/* Radial Items */}
       {menuItems.map((item, idx) => {
         const IconComponent = item.icon;
         const count = menuItems.length;
-        
+
         // Distribute the items across an arc of 90 degrees (from 0 to 90 deg)
         // 0 deg points directly to the right, 90 deg points straight down.
         const angleDeg = (idx * 90) / (count - 1);
         const angleRad = (angleDeg * Math.PI) / 180;
 
         const itemSize = 40; // Size of shortcut items (w-10 h-10)
-        
+
         // Stagger items into 2 rows (inner arc at 90px radius, outer arc at 150px radius)
         const isOuterRow = idx % 2 !== 0;
         const currentRadius = isOuterRow ? 150 : 90; // px
-        
+
         // Coordinates when deployed
         const targetLeft = centerX + currentRadius * Math.cos(angleRad) - itemSize / 2;
         const targetTop = centerY + currentRadius * Math.sin(angleRad) - itemSize / 2;
@@ -146,15 +141,14 @@ export default function RadialSidebar({ currentView, onViewChange }) {
               width: `${itemSize}px`,
               height: `${itemSize}px`,
             }}
-            className={`absolute flex items-center justify-center rounded-full shadow-lg border cursor-pointer group transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-              isCurrent
+            className={`absolute flex items-center justify-center rounded-full shadow-lg border cursor-pointer group transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isCurrent
                 ? 'bg-blue-600 dark:bg-baltic-blue-500 text-white border-blue-600 dark:border-baltic-blue-500 scale-110 shadow-blue-500/20 dark:shadow-baltic-blue-500/20'
                 : `bg-white/95 dark:bg-prussian-blue-900/95 border-slate-200 dark:border-prussian-blue-800 text-slate-700 dark:text-prussian-blue-200 ${item.bgHover}`
-            } pointer-events-auto`}
+              } pointer-events-auto`}
             title={item.label}
           >
             <IconComponent className="w-5 h-5" />
-            
+
             {/* Tooltip */}
             <span className="absolute whitespace-nowrap bg-slate-900/90 dark:bg-prussian-blue-950/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 left-12 top-1/2 -translate-y-1/2 z-50">
               {item.label}
@@ -171,14 +165,13 @@ export default function RadialSidebar({ currentView, onViewChange }) {
           top: `${anchorTop}px`,
           width: `${bubbleSize}px`,
           height: `${bubbleSize}px`,
-          transform: (isOpen || mouseNear) ? 'scale(1)' : 'scale(0) translateX(-40px)',
-          opacity: (isOpen || mouseNear) ? 1 : 0,
+          transform: isOpen ? 'scale(1.05) rotate(90deg)' : 'scale(1)',
+          opacity: 1,
         }}
-        className={`absolute flex items-center justify-center rounded-full border shadow-xl cursor-pointer pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-          isOpen
+        className={`absolute flex items-center justify-center rounded-full border shadow-xl cursor-pointer pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isOpen
             ? 'bg-rose-500 hover:bg-rose-600 text-white border-rose-500 scale-105 rotate-90'
             : 'bg-blue-600 text-white border-blue-600 dark:bg-baltic-blue-500 dark:border-baltic-blue-500 hover:bg-blue-700 dark:hover:bg-baltic-blue-600 hover:scale-110 active:scale-95'
-        }`}
+          }`}
       >
         {isOpen ? <X className="w-5 h-5" /> : <Home className="w-5 h-5" />}
       </button>
