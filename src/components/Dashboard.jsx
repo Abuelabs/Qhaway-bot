@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './Navbar';
+import NotificationsBell from './NotificationsBell';
 import ContactsView from './ContactsView';
 import RoutinesView from './RoutinesView';
 import Mensajeria from './Mensajeria';
@@ -117,10 +117,30 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
           clipPath: revealed ? 'circle(150% at 50vw 50vh)' : 'circle(0% at 50vw 50vh)',
           transition: 'clip-path 4.5s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
-        className="min-h-screen bg-slate-50 dark:bg-prussian-blue-950 text-slate-800 dark:text-prussian-blue-100 font-sans flex flex-col antialiased transition-colors duration-300"
+        className="relative min-h-screen bg-slate-50 dark:bg-prussian-blue-950 text-slate-800 dark:text-prussian-blue-100 font-sans flex flex-col antialiased transition-colors duration-300"
       >
-        {/* Universal Top Bar */}
-        <Navbar adminName={profile.name} avatar={profile.avatar} onProfileClick={() => setIsProfileOpen(true)} />
+        {/* Floating Universal User and Notification Area */}
+        <div className="absolute top-4 right-4 sm:right-6 lg:right-8 z-40 flex items-center gap-2 sm:gap-3 bg-white/80 dark:bg-prussian-blue-900/80 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-slate-200/50 dark:border-prussian-blue-800/50 shadow-xs">
+          <NotificationsBell />
+
+          <button
+            onClick={() => setIsProfileOpen(true)}
+            className="flex items-center gap-2.5 pl-2.5 border-l border-slate-200/60 dark:border-prussian-blue-800/60 cursor-pointer group"
+            title={t('nav.openProfile')}
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 flex items-center justify-center overflow-hidden group-hover:ring-2 group-hover:ring-blue-500/30 dark:group-hover:ring-baltic-blue-500/30 transition">
+              <img
+                src={profile.avatar}
+                alt="User Avatar"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="text-left hidden xs:block">
+              <h4 className="text-[11px] font-bold text-slate-900 dark:text-white leading-none">{profile.name}</h4>
+              <span className="text-[9px] text-slate-400 dark:text-prussian-blue-400 font-semibold block mt-0.5">{t('nav.role')}</span>
+            </div>
+          </button>
+        </div>
 
         {/* Profile Management Panel */}
         <ProfilePanel
@@ -135,7 +155,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
 
           {currentView === 'home' ? (
-            <div className="space-y-8 animate-fade-in flex-1 flex flex-col justify-center py-12">
+            <div className="space-y-8 animate-fade-in flex-1 flex flex-col justify-start pt-4 pb-12">
               <div className="text-center max-w-3xl mx-auto mb-8 -mt-2.5 flex flex-col items-center">
                 <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{t('dashboard.caringFor')} {selectedElder.name}</h2>
                 <p className="text-slate-500 dark:text-prussian-blue-300 text-sm sm:text-base mt-3">{t('dashboard.subtitle')}</p>

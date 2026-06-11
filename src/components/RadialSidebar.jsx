@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, CalendarRange, Users, MessageSquare, Stethoscope, Bot, History, X } from 'lucide-react';
+import { Home, CalendarRange, Users, MessageSquare, BookOpen, Stethoscope, Bot, History, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function RadialSidebar({ currentView, onViewChange }) {
@@ -78,6 +78,7 @@ export default function RadialSidebar({ currentView, onViewChange }) {
     { id: 'contactos', icon: Users, label: 'Contactos', bgHover: 'hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400' },
     { id: 'mensajes', icon: MessageSquare, label: 'Mensajes', bgHover: 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-600 dark:hover:text-purple-400' },
     { id: 'salud', icon: Stethoscope, label: 'Salud', bgHover: 'hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400' },
+    { id: 'biblioteca', icon: BookOpen, label: 'Biblioteca', bgHover: 'hover:bg-orange-500/10 dark:hover:bg-orange-500/20 hover:text-orange-600 dark:hover:text-orange-400' },
     { id: 'robot', icon: Bot, label: 'Robot', bgHover: 'hover:bg-cyan-500/10 dark:hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400' },
     { id: 'actividad', icon: History, label: 'Actividad', bgHover: 'hover:bg-amber-500/10 dark:hover:bg-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400' },
   ];
