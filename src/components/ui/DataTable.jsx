@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DataTable({ columns = [], data = [], emptyStateMessage = "No se encontraron registros." }) {
+export default function DataTable({ columns = [], data = [], emptyStateMessage = "No se encontraron registros.", getRowClassName }) {
   return (
     <div className="w-full overflow-hidden border border-slate-100 dark:border-prussian-blue-800 rounded-3xl bg-white dark:bg-prussian-blue-900 shadow-xs">
       <div className="overflow-x-auto">
@@ -23,7 +23,9 @@ export default function DataTable({ columns = [], data = [], emptyStateMessage =
               data.map((row, rowIndex) => (
                 <tr
                   key={row.id || rowIndex}
-                  className="hover:bg-slate-50/70 dark:hover:bg-prussian-blue-800/40 transition-colors duration-150"
+                  className={`hover:bg-slate-50/70 dark:hover:bg-prussian-blue-800/40 transition-colors duration-150 ${
+                    getRowClassName ? getRowClassName(row) : ''
+                  }`}
                 >
                   {columns.map((column) => (
                     <td key={column.key} className="px-6 py-4 text-slate-700 dark:text-prussian-blue-200">

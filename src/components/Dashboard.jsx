@@ -26,21 +26,72 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
   });
 
   const [routinesByElder, setRoutinesByElder] = useState(() => {
-    // Normalize mockRoutinesByElder so that they have 'name' and 'description' properties
+    // Normalize mockRoutinesByElder so that they have 'name' and 'description' properties and full recurrence support
     const normalized = {};
     Object.entries(mockRoutinesByElder).forEach(([elderId, list]) => {
-      normalized[elderId] = list.map(r => ({
-        id: r.id,
-        name: r.name || r.title || "",
-        repeat: r.repeat !== undefined ? r.repeat : true,
-        days: r.days || (r.id === 5 ? "Sá, Do" : (r.id === 2 ? "Lu, Ma, Mi, Ju, Vi" : "Todos los días")),
-        time: r.time,
-        description: r.description || r.desc || "",
-        status: r.status || "pending",
-        urgency: r.urgency || "medium",
-        category: r.category || "general",
-        completedAt: r.completedAt || null
-      }));
+      normalized[elderId] = list.map(r => {
+        const hasSlashDate = r.days && r.days.includes('/');
+        const defaultDateDDMMYY = hasSlashDate ? r.days : (r.id % 2 === 0 ? "11/06/26" : "10/06/26");
+        
+        // Parse DD/MM/YY back to YYYY-MM-DD
+        const parts = defaultDateDDMMYY.split('/');
+        const startDateRaw = parts.length === 3 ? `20${parts[2]}-${parts[1]}-${parts[0]}` : new Date().toISOString().split('T')[0];
+        
+        // Map legacy repeat/boolean to recurrenceRule object
+        let recRule = {
+          frequency: 'daily',
+          interval: 1,
+          end: { type: 'never' }
+        };
+        
+        if (r.repeat === false || r.repeat === 'nunca') {
+          recRule = {
+            frequency: 'daily',
+            interval: 1,
+            end: { type: 'occurrences', value: 1 }
+          };
+        } else if (r.repeat === 'diariamente') {
+          recRule = {
+            frequency: 'daily',
+            interval: 1,
+            end: { type: 'never' }
+          };
+        } else if (r.repeat === 'semanalmente') {
+          const dateObj = new Date(startDateRaw + 'T00:00:00');
+          const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+          const weekday = weekdays[dateObj.getDay()];
+          recRule = {
+            frequency: 'weekly',
+            interval: 1,
+            byDays: [weekday],
+            end: { type: 'never' }
+          };
+        } else if (r.repeat === 'mensualmente') {
+          const dateObj = new Date(startDateRaw + 'T00:00:00');
+          recRule = {
+            frequency: 'monthly',
+            interval: 1,
+            byMonthDays: [dateObj.getDate()],
+            end: { type: 'never' }
+          };
+        }
+        
+        return {
+          id: r.id,
+          name: r.name || r.title || "",
+          repeat: r.repeat !== undefined ? r.repeat : true,
+          recurrenceRule: r.recurrenceRule || recRule,
+          startDate: r.startDate || startDateRaw,
+          endDate: r.endDate || null,
+          days: defaultDateDDMMYY,
+          time: r.time,
+          description: r.description || r.desc || "",
+          status: r.status || "pending",
+          urgency: r.urgency || "medium",
+          category: r.category || "general",
+          completedAt: r.completedAt || null
+        };
+      });
     });
     return normalized;
   });

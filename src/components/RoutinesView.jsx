@@ -3,21 +3,129 @@ import SearchBar from './ui/SearchBar';
 import FilterSelect from './ui/FilterSelect';
 import DataTable from './ui/DataTable';
 import { CalendarRange, Plus, Edit2, Trash2, Clock, Calendar, Check, X, AlertCircle } from 'lucide-react';
+import { generateOccurrences, describeRecurrenceRule } from '../utils/recurrence';
 
-const WEEKDAYS = [
-  { key: 'Lu', label: 'L' },
-  { key: 'Ma', label: 'M' },
-  { key: 'Mi', label: 'M' },
-  { key: 'Ju', label: 'J' },
-  { key: 'Vi', label: 'V' },
-  { key: 'Sá', label: 'S' },
-  { key: 'Do', label: 'D' }
-];
+const formatDateToDDMMYY = (dateStr) => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const yearShort = parts[0].substring(2);
+  const month = parts[1];
+  const day = parts[2];
+  return `${day}/${month}/${yearShort}`;
+};
+
+const parseDDMMYYToDateInput = (ddmmyyStr) => {
+  if (!ddmmyyStr) return new Date().toISOString().split('T')[0];
+  const parts = ddmmyyStr.split('/');
+  if (parts.length !== 3) return new Date().toISOString().split('T')[0];
+  const day = parts[0];
+  const month = parts[1];
+  const yearShort = parts[2];
+  const yearFull = `20${yearShort}`;
+  return `${yearFull}-${month}-${day}`;
+};
+
+const WEEKDAY_MAP = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const getWeekdayStr = (d) => {
+  return WEEKDAY_MAP[d.getDay()];
+};
+
+const getPresetRule = (presetType, startDateStr) => {
+  const dateObj = startDateStr ? new Date(startDateStr + 'T00:00:00') : new Date();
+  const weekday = getWeekdayStr(dateObj);
+  const dayOfMonth = dateObj.getDate();
+  
+  switch (presetType) {
+    case 'once':
+      return {
+        frequency: 'daily',
+        interval: 1,
+        end: { type: 'occurrences', value: 1 }
+      };
+    case 'daily':
+      return {
+        frequency: 'daily',
+        interval: 1,
+        end: { type: 'never' }
+      };
+    case 'weekly':
+      return {
+        frequency: 'weekly',
+        interval: 1,
+        byDays: [weekday],
+        end: { type: 'never' }
+      };
+    case 'monthly':
+      return {
+        frequency: 'monthly',
+        interval: 1,
+        byMonthDays: [dayOfMonth],
+        end: { type: 'never' }
+      };
+    case 'yearly':
+      return {
+        frequency: 'yearly',
+        interval: 1,
+        end: { type: 'never' }
+      };
+    default:
+      return null;
+  }
+};
+
+const detectPresetType = (rule, startDateStr) => {
+  if (!rule) return 'custom';
+  const dateObj = startDateStr ? new Date(startDateStr + 'T00:00:00') : new Date();
+  const weekday = getWeekdayStr(dateObj);
+  const dayOfMonth = dateObj.getDate();
+
+  const freq = rule.frequency;
+  const interval = rule.interval || 1;
+  const endType = rule.end?.type || 'never';
+  const endValue = rule.end?.value;
+
+  if (freq === 'daily' && interval === 1) {
+    if (endType === 'occurrences' && Number(endValue) === 1) {
+      return 'once';
+    }
+    if (endType === 'never' && (!rule.byDays || rule.byDays.length === 0)) {
+      return 'daily';
+    }
+  }
+  if (freq === 'weekly' && interval === 1 && endType === 'never') {
+    if (rule.byDays && rule.byDays.length === 1 && rule.byDays[0] === weekday) {
+      return 'weekly';
+    }
+  }
+  if (freq === 'monthly' && interval === 1 && endType === 'never') {
+    if (rule.byMonthDays && rule.byMonthDays.length === 1 && rule.byMonthDays[0] === dayOfMonth) {
+      return 'monthly';
+    }
+  }
+  if (freq === 'yearly' && interval === 1 && endType === 'never') {
+    return 'yearly';
+  }
+  return 'custom';
+};
+
+const getNextOccurrenceDate = (rule, currentStartDateStr) => {
+  if (!rule) return null;
+  const currentStart = new Date(currentStartDateStr + 'T00:00:00');
+  const tomorrow = new Date(currentStart);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const occurrences = generateOccurrences(rule, tomorrow, 1);
+  if (occurrences.length > 0) {
+    return occurrences[0].toISOString().split('T')[0];
+  }
+  return null;
+};
 
 export default function RoutinesView({ routines = [], setRoutines }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [repeatFilter, setRepeatFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,22 +136,21 @@ export default function RoutinesView({ routines = [], setRoutines }) {
   // Form states
   const [formData, setFormData] = useState({
     name: '',
-    repeat: true,
-    selectedDays: ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'], // default to all
-    time: '',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: '',
+    time: '08:00',
     description: '',
     urgency: 'medium',
-    category: 'medicina'
+    category: 'medicina',
+    recurrenceRule: {
+      frequency: 'daily',
+      interval: 1,
+      end: { type: 'never' }
+    }
   });
   
+  const [activePreset, setActivePreset] = useState('daily');
   const [errors, setErrors] = useState({});
-
-  // Filter options
-  const filterOptions = [
-    { value: 'all', label: 'Todas' },
-    { value: 'repeat', label: 'Repetitivas' },
-    { value: 'once', label: 'No repetitivas' }
-  ];
 
   const categoryFilterOptions = [
     { value: 'all', label: 'Todas' },
@@ -54,36 +161,47 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     { value: 'general', label: 'General' }
   ];
 
+  const statusFilterOptions = [
+    { value: 'all', label: 'Todas' },
+    { value: 'pending', label: 'Faltan por hacer' }
+  ];
+
   // Filtering Logic
   const filteredRoutines = routines.filter(routine => {
     const matchesSearch = 
       routine.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       routine.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-    const matchesRepeat = 
-      repeatFilter === 'all' || 
-      (repeatFilter === 'repeat' && routine.repeat) || 
-      (repeatFilter === 'once' && !routine.repeat);
-
     const matchesCategory = 
       categoryFilter === 'all' || 
       routine.category === categoryFilter;
 
-    return matchesSearch && matchesRepeat && matchesCategory;
+    const matchesStatus = 
+      statusFilter === 'all' || 
+      (statusFilter === 'pending' && routine.status === 'pending');
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   // Handle open modal for create
   const handleOpenCreate = () => {
     setSelectedRoutine(null);
+    const todayStr = new Date().toISOString().split('T')[0];
     setFormData({
       name: '',
-      repeat: true,
-      selectedDays: ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'],
+      startDate: todayStr,
+      endDate: '',
       time: '08:00',
       description: '',
       urgency: 'medium',
-      category: 'medicina'
+      category: 'medicina',
+      recurrenceRule: {
+        frequency: 'daily',
+        interval: 1,
+        end: { type: 'never' }
+      }
     });
+    setActivePreset('daily');
     setErrors({});
     setIsModalOpen(true);
   };
@@ -92,41 +210,245 @@ export default function RoutinesView({ routines = [], setRoutines }) {
   const handleOpenEdit = (routine) => {
     setSelectedRoutine(routine);
     
-    // Parse days
-    let daysArr = [];
-    if (routine.days === 'Todos los días') {
-      daysArr = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
-    } else if (routine.days === 'Lunes a Viernes') {
-      daysArr = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi'];
-    } else if (routine.days === 'Fines de semana') {
-      daysArr = ['Sá', 'Do'];
-    } else if (routine.days && routine.days !== 'No aplica') {
-      daysArr = routine.days.split(', ').map(d => d.trim());
+    let startVal = routine.startDate;
+    if (!startVal) {
+      startVal = routine.days && routine.days.includes('/') ? parseDDMMYYToDateInput(routine.days) : new Date().toISOString().split('T')[0];
+    } else if (startVal.includes('/')) {
+      startVal = parseDDMMYYToDateInput(startVal);
+    }
+    
+    let endVal = routine.endDate;
+    if (endVal && endVal.includes('/')) {
+      endVal = parseDDMMYYToDateInput(endVal);
+    } else if (!endVal) {
+      endVal = '';
+    }
+
+    let recRule = routine.recurrenceRule;
+    if (!recRule) {
+      const rep = routine.repeat;
+      if (rep === 'nunca' || rep === false) {
+        recRule = {
+          frequency: 'daily',
+          interval: 1,
+          end: { type: 'occurrences', value: 1 }
+        };
+      } else if (rep === 'diariamente') {
+        recRule = {
+          frequency: 'daily',
+          interval: 1,
+          end: { type: 'never' }
+        };
+      } else if (rep === 'semanalmente') {
+        recRule = {
+          frequency: 'weekly',
+          interval: 1,
+          byDays: [getWeekdayStr(new Date(startVal + 'T00:00:00'))],
+          end: { type: 'never' }
+        };
+      } else if (rep === 'mensualmente') {
+        recRule = {
+          frequency: 'monthly',
+          interval: 1,
+          byMonthDays: [new Date(startVal + 'T00:00:00').getDate()],
+          end: { type: 'never' }
+        };
+      } else {
+        recRule = {
+          frequency: 'daily',
+          interval: 1,
+          end: { type: 'never' }
+        };
+      }
     }
 
     setFormData({
       name: routine.name,
-      repeat: routine.repeat,
-      selectedDays: daysArr,
+      startDate: startVal,
+      endDate: endVal,
       time: routine.time,
       description: routine.description,
       urgency: routine.urgency || 'medium',
-      category: routine.category || 'medicina'
+      category: routine.category || 'medicina',
+      recurrenceRule: recRule
     });
+    
+    const preset = detectPresetType(recRule, startVal);
+    setActivePreset(preset);
+    
     setErrors({});
     setIsModalOpen(true);
   };
 
-  // Toggle day selection
-  const handleToggleDay = (dayKey) => {
+  // State modification handlers for the Recurrence Editor
+  const handleStartDateChange = (val) => {
     setFormData(prev => {
-      const days = [...prev.selectedDays];
-      if (days.includes(dayKey)) {
-        return { ...prev, selectedDays: days.filter(d => d !== dayKey) };
-      } else {
-        return { ...prev, selectedDays: [...days, dayKey] };
+      const updated = { ...prev, startDate: val };
+      if (activePreset === 'weekly') {
+        const dateObj = new Date(val + 'T00:00:00');
+        const weekday = getWeekdayStr(dateObj);
+        updated.recurrenceRule = {
+          ...prev.recurrenceRule,
+          byDays: [weekday]
+        };
+      } else if (activePreset === 'monthly') {
+        const dateObj = new Date(val + 'T00:00:00');
+        const dayOfMonth = dateObj.getDate();
+        updated.recurrenceRule = {
+          ...prev.recurrenceRule,
+          byMonthDays: [dayOfMonth]
+        };
       }
+      return updated;
     });
+  };
+
+  const handleCustomRuleChange = (field, value) => {
+    setFormData(prev => {
+      const updatedRule = { ...prev.recurrenceRule };
+      
+      if (field === 'frequency') {
+        updatedRule.frequency = value;
+        if (value === 'weekly') {
+          const startD = new Date(prev.startDate + 'T00:00:00');
+          updatedRule.byDays = [getWeekdayStr(startD)];
+          delete updatedRule.byMonthDays;
+          delete updatedRule.byWeekdayOfMonth;
+        } else if (value === 'monthly') {
+          const startD = new Date(prev.startDate + 'T00:00:00');
+          updatedRule.byMonthDays = [startD.getDate()];
+          delete updatedRule.byDays;
+          delete updatedRule.byWeekdayOfMonth;
+        } else {
+          delete updatedRule.byDays;
+          delete updatedRule.byMonthDays;
+          delete updatedRule.byWeekdayOfMonth;
+        }
+      } else if (field === 'interval') {
+        updatedRule.interval = value;
+      } else if (field === 'end') {
+        updatedRule.end = value;
+      }
+
+      return {
+        ...prev,
+        recurrenceRule: updatedRule
+      };
+    });
+  };
+
+  const handleWeeklyDayToggle = (dayId) => {
+    setFormData(prev => {
+      const currentDays = prev.recurrenceRule?.byDays || [];
+      const updatedDays = currentDays.includes(dayId)
+        ? currentDays.filter(d => d !== dayId)
+        : [...currentDays, dayId];
+      
+      return {
+        ...prev,
+        recurrenceRule: {
+          ...prev.recurrenceRule,
+          byDays: updatedDays
+        }
+      };
+    });
+  };
+
+  const handleMonthlyTypeChange = (type) => {
+    setFormData(prev => {
+      const updatedRule = { ...prev.recurrenceRule };
+      const startD = new Date(prev.startDate + 'T00:00:00');
+      
+      if (type === 'dayOfMonth') {
+        updatedRule.byMonthDays = [startD.getDate()];
+        delete updatedRule.byWeekdayOfMonth;
+      } else {
+        const weekday = getWeekdayStr(startD);
+        const occurrence = Math.floor((startD.getDate() - 1) / 7) + 1;
+        updatedRule.byWeekdayOfMonth = [{ weekday, occurrence }];
+        delete updatedRule.byMonthDays;
+      }
+      
+      return {
+        ...prev,
+        recurrenceRule: updatedRule
+      };
+    });
+  };
+
+  const handleMonthlyDayToggle = (dayNum) => {
+    setFormData(prev => {
+      const currentMonthDays = prev.recurrenceRule?.byMonthDays || [];
+      const updatedMonthDays = currentMonthDays.includes(dayNum)
+        ? currentMonthDays.filter(d => d !== dayNum)
+        : [...currentMonthDays, dayNum];
+        
+      return {
+        ...prev,
+        recurrenceRule: {
+          ...prev.recurrenceRule,
+          byMonthDays: updatedMonthDays
+        }
+      };
+    });
+  };
+
+  const handleRelativeWeekdayChange = (field, value) => {
+    setFormData(prev => {
+      const currentRel = prev.recurrenceRule?.byWeekdayOfMonth?.[0] || { occurrence: 1, weekday: 'mon' };
+      const updatedRel = { ...currentRel, [field]: value };
+      
+      return {
+        ...prev,
+        recurrenceRule: {
+          ...prev.recurrenceRule,
+          byWeekdayOfMonth: [updatedRel]
+        }
+      };
+    });
+  };
+
+  const handleEndTypeChange = (typeId) => {
+    setFormData(prev => {
+      const updatedRule = { ...prev.recurrenceRule };
+      
+      if (typeId === 'never') {
+        updatedRule.end = { type: 'never' };
+      } else if (typeId === 'date') {
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 30);
+        const defaultStr = defaultDate.toISOString().split('T')[0];
+        updatedRule.end = { type: 'date', value: defaultStr };
+      } else if (typeId === 'occurrences') {
+        updatedRule.end = { type: 'occurrences', value: 10 };
+      }
+      
+      return {
+        ...prev,
+        recurrenceRule: updatedRule
+      };
+    });
+  };
+
+  const handlePresetClick = (presetId) => {
+    setActivePreset(presetId);
+    if (presetId !== 'custom') {
+      const newRule = getPresetRule(presetId, formData.startDate);
+      setFormData(prev => ({
+        ...prev,
+        recurrenceRule: newRule
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        recurrenceRule: {
+          ...prev.recurrenceRule,
+          frequency: prev.recurrenceRule?.frequency || 'daily',
+          interval: prev.recurrenceRule?.interval || 1,
+          end: prev.recurrenceRule?.end || { type: 'never' }
+        }
+      }));
+    }
   };
 
   // Form Validation
@@ -138,9 +460,37 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     if (!formData.time) {
       newErrors.time = 'La hora de la rutina es requerida.';
     }
-    if (formData.selectedDays.length === 0) {
-      newErrors.selectedDays = 'Debes seleccionar al menos un día para la rutina.';
+    if (!formData.startDate) {
+      newErrors.startDate = 'La fecha de inicio es requerida.';
     }
+
+    const rule = formData.recurrenceRule;
+    if (rule) {
+      if (rule.interval === undefined || rule.interval < 1) {
+        newErrors.interval = 'El intervalo debe ser mayor o igual a 1.';
+      }
+      
+      if (rule.frequency === 'weekly') {
+        if (!rule.byDays || rule.byDays.length === 0) {
+          newErrors.byDays = 'Debes seleccionar al menos un día de la semana.';
+        }
+      }
+      
+      if (rule.frequency === 'monthly') {
+        if ((!rule.byMonthDays || rule.byMonthDays.length === 0) && (!rule.byWeekdayOfMonth || rule.byWeekdayOfMonth.length === 0)) {
+          newErrors.monthly = 'Debes configurar el día del mes o el día de la semana relativo.';
+        }
+      }
+      
+      if (rule.end?.type === 'date' && !rule.end.value) {
+        newErrors.endValue = 'La fecha de finalización es requerida.';
+      }
+      
+      if (rule.end?.type === 'occurrences' && (!rule.end.value || Number(rule.end.value) < 1)) {
+        newErrors.endValue = 'La cantidad de veces debe ser mayor o igual a 1.';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -150,52 +500,34 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     e.preventDefault();
     if (!validateForm()) return;
 
-    // Format days representation
-    let daysString = 'No aplica';
-    if (formData.selectedDays.length === 7) {
-      daysString = 'Todos los días';
-    } else if (
-      formData.selectedDays.length === 5 && 
-      ['Lu', 'Ma', 'Mi', 'Ju', 'Vi'].every(d => formData.selectedDays.includes(d))
-    ) {
-      daysString = 'Lunes a Viernes';
-    } else if (
-      formData.selectedDays.length === 2 && 
-      ['Sá', 'Do'].every(d => formData.selectedDays.includes(d))
-    ) {
-      daysString = 'Fines de semana';
-    } else if (formData.selectedDays.length > 0) {
-      // Order days correctly (mon to sun)
-      const order = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
-      const sortedDays = [...formData.selectedDays].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-      daysString = sortedDays.join(', ');
-    }
+    const startFormatted = formatDateToDDMMYY(formData.startDate);
+
+    const updatedData = {
+      name: formData.name,
+      time: formData.time,
+      description: formData.description,
+      urgency: formData.urgency,
+      category: formData.category,
+      startDate: formData.startDate,
+      endDate: formData.endDate || null,
+      recurrenceRule: formData.recurrenceRule,
+      days: startFormatted, // backwards-compatible date string
+      repeat: describeRecurrenceRule(formData.recurrenceRule) // backwards-compatible text
+    };
 
     if (selectedRoutine) {
       // Edit Routine
       setRoutines(prev => prev.map(r => r.id === selectedRoutine.id ? {
         ...r,
-        name: formData.name,
-        repeat: formData.repeat,
-        days: daysString,
-        time: formData.time,
-        description: formData.description,
-        urgency: formData.urgency,
-        category: formData.category
+        ...updatedData
       } : r));
     } else {
       // Create Routine
       const newId = routines.length > 0 ? Math.max(...routines.map(r => r.id)) + 1 : 1;
       setRoutines(prev => [...prev, {
         id: newId,
-        name: formData.name,
-        repeat: formData.repeat,
-        days: daysString,
-        time: formData.time,
-        description: formData.description,
         status: 'pending',
-        urgency: formData.urgency,
-        category: formData.category
+        ...updatedData
       }]);
     }
 
@@ -218,11 +550,52 @@ export default function RoutinesView({ routines = [], setRoutines }) {
 
   // Toggle routine complete status
   const handleToggleStatus = (routine) => {
-    setRoutines(prev => prev.map(r => r.id === routine.id ? {
-      ...r,
-      status: r.status === 'completed' ? 'pending' : 'completed',
-      completedAt: r.status === 'completed' ? null : new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
-    } : r));
+    const nextStatus = routine.status === 'completed' ? 'pending' : 'completed';
+    const completedAtVal = nextStatus === 'completed' 
+      ? new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }) 
+      : null;
+
+    setRoutines(prev => {
+      // 1. Toggle status of current routine
+      let nextRoutines = prev.map(r => r.id === routine.id ? {
+        ...r,
+        status: nextStatus,
+        completedAt: completedAtVal
+      } : r);
+
+      // 2. If it was completed, check if we need to spawn the next occurrence
+      if (nextStatus === 'completed' && routine.recurrenceRule) {
+        const nextDate = getNextOccurrenceDate(routine.recurrenceRule, routine.startDate);
+        if (nextDate) {
+          const alreadyExists = prev.some(r => 
+            r.name === routine.name && 
+            r.time === routine.time && 
+            r.startDate === nextDate
+          );
+          
+          if (!alreadyExists) {
+            const nextId = nextRoutines.length > 0 ? Math.max(...nextRoutines.map(r => r.id)) + 1 : 1;
+            const startFormatted = formatDateToDDMMYY(nextDate);
+            nextRoutines.push({
+              id: nextId,
+              name: routine.name,
+              time: routine.time,
+              description: routine.description,
+              status: 'pending',
+              urgency: routine.urgency || 'medium',
+              category: routine.category || 'general',
+              startDate: nextDate,
+              endDate: routine.endDate || null,
+              recurrenceRule: routine.recurrenceRule,
+              days: startFormatted,
+              repeat: routine.repeat
+            });
+          }
+        }
+      }
+
+      return nextRoutines;
+    });
   };
 
   // Columns for the DataTable
@@ -237,24 +610,37 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     {
       key: 'name',
       label: 'Nombre de Rutina',
-      render: (value, row) => (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleToggleStatus(row)}
-            className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer ${
-              row.status === 'completed' 
-                ? 'bg-red-600 border-red-600 text-white' 
-                : 'border-slate-300 hover:border-red-500 bg-white'
-            }`}
-            title={row.status === 'completed' ? 'Marcar como activa' : 'Marcar como completada/deshabilitada'}
-          >
-            {row.status === 'completed' && <X className="w-3.5 h-3.5" />}
-          </button>
-          <span className={`font-bold block tracking-tight ${row.status === 'completed' ? 'line-through text-slate-400 font-medium' : 'text-slate-900'}`}>
-            {value}
-          </span>
-        </div>
-      )
+      render: (value, row) => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const isOverdue = row.startDate && row.startDate < todayStr && row.status !== 'completed';
+        return (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleToggleStatus(row)}
+              className={`w-5 h-5 rounded-md flex items-center justify-center border transition-all cursor-pointer ${
+                row.status === 'completed' 
+                  ? 'bg-red-600 border-red-600 text-white' 
+                  : isOverdue
+                    ? 'border-amber-400 hover:border-red-500 bg-amber-50 dark:bg-amber-950/20'
+                    : 'border-slate-300 hover:border-red-500 bg-white'
+              }`}
+              title={row.status === 'completed' ? 'Marcar como activa' : 'Marcar como completada/deshabilitada'}
+            >
+              {row.status === 'completed' && <X className="w-3.5 h-3.5" />}
+            </button>
+            <div className="flex flex-col">
+              <span className={`font-bold block tracking-tight ${row.status === 'completed' ? 'line-through text-slate-400 font-medium' : 'text-slate-900'}`}>
+                {value}
+              </span>
+              {isOverdue && (
+                <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded-sm bg-amber-100 dark:bg-amber-900/50 text-[10px] text-amber-800 dark:text-amber-300 font-bold uppercase tracking-wider leading-none w-fit">
+                  No Cumplido (Atrasado)
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      }
     },
     {
       key: 'category',
@@ -279,26 +665,45 @@ export default function RoutinesView({ routines = [], setRoutines }) {
       }
     },
     {
-      key: 'repeat',
-      label: 'Repetir',
-      render: (value) => (
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
-          value 
-            ? 'bg-green-50 text-green-700 border-green-100' 
-            : 'bg-slate-50 text-slate-500 border-slate-100'
-        }`}>
-          {value ? 'Sí' : 'No'}
-        </span>
-      )
+      key: 'recurrenceRule',
+      label: 'Recurrencia',
+      render: (_, row) => {
+        const desc = describeRecurrenceRule(row.recurrenceRule);
+        const isOnce = row.recurrenceRule?.end?.type === 'occurrences' && Number(row.recurrenceRule?.end?.value) === 1;
+        return (
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
+            !isOnce 
+              ? 'bg-green-50 text-green-700 border-green-100 dark:bg-verdigris-950 dark:text-verdigris-400 dark:border-verdigris-800' 
+              : 'bg-slate-50 text-slate-500 border-slate-100 dark:bg-prussian-blue-800 dark:text-prussian-blue-300 dark:border-prussian-blue-700'
+          }`}>
+            {desc}
+          </span>
+        );
+      }
     },
     {
-      key: 'days',
-      label: 'Día(s)',
-      render: (value, row) => (
-        <span className={`font-semibold text-xs ${!row.repeat ? 'text-slate-400 font-medium' : 'text-slate-700'}`}>
-          {value} {!row.repeat && <span className="text-[10px] font-normal text-slate-400 italic">(Solo una vez)</span>}
-        </span>
-      )
+      key: 'startDate',
+      label: 'Fecha Inicio',
+      render: (value, row) => {
+        const displayVal = row.startDate ? formatDateToDDMMYY(row.startDate) : row.days;
+        return (
+          <span className="font-semibold text-xs text-slate-700 dark:text-prussian-blue-300">
+            {displayVal}
+          </span>
+        );
+      }
+    },
+    {
+      key: 'endDate',
+      label: 'Fecha Cierre',
+      render: (value, row) => {
+        const displayVal = row.endDate ? formatDateToDDMMYY(row.endDate) : (row.recurrenceRule?.end?.type === 'date' && row.recurrenceRule.end.value ? formatDateToDDMMYY(row.recurrenceRule.end.value) : 'Nunca');
+        return (
+          <span className="font-semibold text-xs text-slate-700 dark:text-prussian-blue-300">
+            {displayVal}
+          </span>
+        );
+      }
     },
     {
       key: 'time',
@@ -343,6 +748,29 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     }
   ];
 
+  let previewOccurrences = [];
+  try {
+    if (formData.startDate && formData.recurrenceRule) {
+      const startD = new Date(formData.startDate + 'T00:00:00');
+      previewOccurrences = generateOccurrences(formData.recurrenceRule, startD, 5);
+    }
+  } catch (err) {
+    console.error("Error computing occurrences preview", err);
+  }
+
+  const formatOccurDate = (d) => {
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    
+    const dayName = dayNames[d.getDay()];
+    const day = d.getDate();
+    const month = monthNames[d.getMonth()];
+    const year = d.getFullYear();
+    
+    return `${dayName}, ${day} de ${month} de ${year}`;
+  };
+
+
   return (
     <div className="w-full space-y-6">
       
@@ -382,10 +810,10 @@ export default function RoutinesView({ routines = [], setRoutines }) {
             onChange={(e) => setCategoryFilter(e.target.value)}
           />
           <FilterSelect 
-            label="Repetición:"
-            options={filterOptions}
-            value={repeatFilter}
-            onChange={(e) => setRepeatFilter(e.target.value)}
+            label="Estado:"
+            options={statusFilterOptions}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           />
         </div>
       </div>
@@ -395,6 +823,15 @@ export default function RoutinesView({ routines = [], setRoutines }) {
         columns={columns} 
         data={filteredRoutines} 
         emptyStateMessage="No se encontraron rutinas registradas."
+        getRowClassName={(row) => {
+          if (row.startDate && row.status !== 'completed') {
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (row.startDate < todayStr) {
+              return 'bg-amber-50/50 dark:bg-amber-950/20 text-slate-900 dark:text-amber-200 hover:bg-amber-100/40 dark:hover:bg-amber-950/30';
+            }
+          }
+          return '';
+        }}
       />
 
       {/* CREATE / EDIT MODAL */}
@@ -482,59 +919,354 @@ export default function RoutinesView({ routines = [], setRoutines }) {
                 </div>
               </div>
 
-              {/* Repeat Toggle */}
-              <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                    Repetir Rutina
+              {/* Date Range Selection */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Start Date */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                    Fecha de Inicio *
                   </label>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Define si la rutina se repite periódicamente.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, repeat: !formData.repeat })}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-blue-500/25 ${
-                    formData.repeat ? 'bg-blue-600' : 'bg-slate-200'
-                  }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                      formData.repeat ? 'translate-x-5' : 'translate-x-0'
+                  <input 
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
+                    className={`w-full bg-white dark:bg-prussian-blue-850 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition ${
+                      errors.startDate ? 'border-red-500 ring-2 ring-red-500/10' : 'border-slate-200 dark:border-prussian-blue-700'
                     }`}
                   />
-                </button>
+                  {errors.startDate && (
+                    <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                      <AlertCircle className="w-3.5 h-3.5" /> {errors.startDate}
+                    </p>
+                  )}
+                </div>
+
+                {/* End Date */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                    Fecha de Cierre (Opcional)
+                  </label>
+                  <input 
+                    type="date"
+                    value={formData.endDate}
+                    min={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="w-full bg-white dark:bg-prussian-blue-850 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl px-4 py-2.5 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition border-slate-200 dark:border-prussian-blue-700"
+                  />
+                </div>
               </div>
 
-              {/* Day selection */}
-              <div className="space-y-2.5 p-1">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Días de la semana *
+              {/* Presets Grid Selector */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                  Patrón de Repetición (Presets)
                 </label>
-                <div className="flex justify-between gap-1.5">
-                  {WEEKDAYS.map(day => {
-                    const isSelected = formData.selectedDays.includes(day.key);
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'once', label: 'Una vez' },
+                    { id: 'daily', label: 'Diario' },
+                    { id: 'weekly', label: 'Semanal' },
+                    { id: 'monthly', label: 'Mensual' },
+                    { id: 'yearly', label: 'Anual' },
+                    { id: 'custom', label: 'Personalizado...' }
+                  ].map((preset) => {
+                    const isSelected = activePreset === preset.id;
                     return (
                       <button
-                        key={day.key}
+                        key={preset.id}
                         type="button"
-                        onClick={() => handleToggleDay(day.key)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all border cursor-pointer ${
+                        onClick={() => handlePresetClick(preset.id)}
+                        className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer text-center ${
                           isSelected
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs hover:bg-blue-700'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50'
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 dark:bg-prussian-blue-800 border-slate-200 dark:border-prussian-blue-700 text-slate-700 dark:text-prussian-blue-200 hover:bg-slate-100 dark:hover:bg-prussian-blue-700'
                         }`}
                       >
-                        {day.label}
+                        {preset.label}
                       </button>
                     );
                   })}
                 </div>
-                {errors.selectedDays && (
-                  <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
-                    <AlertCircle className="w-3.5 h-3.5" /> {errors.selectedDays}
-                  </p>
+              </div>
+
+              {/* Advanced Custom Section */}
+              {activePreset === 'custom' && (
+                <div className="bg-slate-50 dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-2xl p-4 space-y-4">
+                  
+                  {/* Frequency Selection & Interval */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Frequency dropdown */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                        Frecuencia
+                      </label>
+                      <select
+                        value={formData.recurrenceRule?.frequency || 'daily'}
+                        onChange={(e) => handleCustomRuleChange('frequency', e.target.value)}
+                        className="w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-3 py-2 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition cursor-pointer"
+                      >
+                        <option value="daily">Diaria</option>
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensual</option>
+                        <option value="yearly">Anual</option>
+                      </select>
+                    </div>
+
+                    {/* Interval field */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                        Repetir cada
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.recurrenceRule?.interval || 1}
+                          onChange={(e) => handleCustomRuleChange('interval', parseInt(e.target.value) || 1)}
+                          className="w-20 bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-3 py-2 text-slate-800 dark:text-prussian-blue-100 outline-hidden focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500 transition text-center"
+                        />
+                        <span className="text-xs text-slate-500 dark:text-prussian-blue-300 font-bold uppercase tracking-wide">
+                          {formData.recurrenceRule?.frequency === 'daily' && 'días'}
+                          {formData.recurrenceRule?.frequency === 'weekly' && 'semanas'}
+                          {formData.recurrenceRule?.frequency === 'monthly' && 'meses'}
+                          {formData.recurrenceRule?.frequency === 'yearly' && 'años'}
+                        </span>
+                      </div>
+                      {errors.interval && (
+                        <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" /> {errors.interval}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Weekly sub-options */}
+                  {formData.recurrenceRule?.frequency === 'weekly' && (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                        Repetir los días
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { id: 'mon', label: 'Lu' },
+                          { id: 'tue', label: 'Ma' },
+                          { id: 'wed', label: 'Mi' },
+                          { id: 'thu', label: 'Ju' },
+                          { id: 'fri', label: 'Vi' },
+                          { id: 'sat', label: 'Sá' },
+                          { id: 'sun', label: 'Do' }
+                        ].map((day) => {
+                          const isChecked = formData.recurrenceRule?.byDays?.includes(day.id);
+                          return (
+                            <button
+                              key={day.id}
+                              type="button"
+                              onClick={() => handleWeeklyDayToggle(day.id)}
+                              className={`w-9 h-9 rounded-xl text-xs font-bold transition-all border flex items-center justify-center cursor-pointer ${
+                                isChecked
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                  : 'bg-white dark:bg-prussian-blue-800 border-slate-200 dark:border-prussian-blue-700 text-slate-600 dark:text-prussian-blue-200 hover:bg-slate-50'
+                              }`}
+                            >
+                              {day.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.byDays && (
+                        <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                          <AlertCircle className="w-3.5 h-3.5" /> {errors.byDays}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Monthly sub-options */}
+                  {formData.recurrenceRule?.frequency === 'monthly' && (
+                    <div className="space-y-3">
+                      <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                        Configuración Mensual
+                      </label>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-prussian-blue-300">
+                          <input
+                            type="radio"
+                            name="monthlyType"
+                            checked={!formData.recurrenceRule?.byWeekdayOfMonth}
+                            onChange={() => handleMonthlyTypeChange('dayOfMonth')}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          Día del mes
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-600 dark:text-prussian-blue-300">
+                          <input
+                            type="radio"
+                            name="monthlyType"
+                            checked={!!formData.recurrenceRule?.byWeekdayOfMonth}
+                            onChange={() => handleMonthlyTypeChange('relativeWeekday')}
+                            className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          Día relativo
+                        </label>
+                      </div>
+
+                      {!formData.recurrenceRule?.byWeekdayOfMonth ? (
+                        <div className="space-y-2">
+                          <span className="text-xs text-slate-500 dark:text-prussian-blue-400 block font-semibold">Días del mes:</span>
+                          <div className="grid grid-cols-7 gap-1 bg-white dark:bg-prussian-blue-800 p-2 rounded-xl border border-slate-200 dark:border-prussian-blue-700">
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((dayNum) => {
+                              const isSelected = formData.recurrenceRule?.byMonthDays?.includes(dayNum);
+                              return (
+                                <button
+                                  key={dayNum}
+                                  type="button"
+                                  onClick={() => handleMonthlyDayToggle(dayNum)}
+                                  className={`w-7 h-7 rounded-lg text-[10px] font-extrabold flex items-center justify-center transition cursor-pointer border ${
+                                    isSelected
+                                      ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                                      : 'bg-transparent border-transparent text-slate-600 dark:text-prussian-blue-200 hover:bg-slate-100 dark:hover:bg-prussian-blue-700'
+                                  }`}
+                                >
+                                  {dayNum}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {errors.monthly && (
+                            <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                              <AlertCircle className="w-3.5 h-3.5" /> {errors.monthly}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <select
+                            value={formData.recurrenceRule?.byWeekdayOfMonth?.[0]?.occurrence || 1}
+                            onChange={(e) => handleRelativeWeekdayChange('occurrence', parseInt(e.target.value))}
+                            className="flex-1 bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-prussian-blue-100 cursor-pointer"
+                          >
+                            <option value="1">El 1er</option>
+                            <option value="2">El 2do</option>
+                            <option value="3">El 3er</option>
+                            <option value="4">El 4to</option>
+                            <option value="5">El 5to</option>
+                          </select>
+                          <select
+                            value={formData.recurrenceRule?.byWeekdayOfMonth?.[0]?.weekday || 'mon'}
+                            onChange={(e) => handleRelativeWeekdayChange('weekday', e.target.value)}
+                            className="flex-1 bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-2.5 py-2 text-xs text-slate-800 dark:text-prussian-blue-100 cursor-pointer"
+                          >
+                            <option value="mon">Lunes</option>
+                            <option value="tue">Martes</option>
+                            <option value="wed">Miércoles</option>
+                            <option value="thu">Jueves</option>
+                            <option value="fri">Viernes</option>
+                            <option value="sat">Sábado</option>
+                            <option value="sun">Domingo</option>
+                          </select>
+                          <span className="self-center text-xs text-slate-500 dark:text-prussian-blue-400 font-semibold">del mes</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* End conditions */}
+                  <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-prussian-blue-800">
+                    <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider">
+                      Terminar Repetición
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'never', label: 'Nunca' },
+                        { id: 'date', label: 'En la fecha' },
+                        { id: 'occurrences', label: 'Después de...' }
+                      ].map((type) => {
+                        const isSelected = formData.recurrenceRule?.end?.type === type.id;
+                        return (
+                          <button
+                            key={type.id}
+                            type="button"
+                            onClick={() => handleEndTypeChange(type.id)}
+                            className={`py-1.5 px-2.5 rounded-lg text-xs font-bold border transition cursor-pointer text-center ${
+                              isSelected
+                                ? 'bg-slate-700 dark:bg-slate-200 border-slate-700 dark:border-slate-200 text-white dark:text-slate-900 shadow-xs'
+                                : 'bg-white dark:bg-prussian-blue-800 border-slate-200 dark:border-prussian-blue-700 text-slate-600 dark:text-prussian-blue-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {type.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {formData.recurrenceRule?.end?.type === 'date' && (
+                      <div className="space-y-1 mt-2">
+                        <input
+                          type="date"
+                          value={formData.recurrenceRule?.end?.value || ''}
+                          min={formData.startDate}
+                          onChange={(e) => handleCustomRuleChange('end', { type: 'date', value: e.target.value })}
+                          className={`w-full bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-prussian-blue-100 ${
+                            errors.endValue ? 'border-red-500 focus:ring-red-500/20' : ''
+                          }`}
+                        />
+                        {errors.endValue && (
+                          <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                            <AlertCircle className="w-3.5 h-3.5" /> {errors.endValue}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {formData.recurrenceRule?.end?.type === 'occurrences' && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.recurrenceRule?.end?.value || ''}
+                          placeholder="10"
+                          onChange={(e) => handleCustomRuleChange('end', { type: 'occurrences', value: parseInt(e.target.value) || '' })}
+                          className={`w-20 bg-white dark:bg-prussian-blue-800 border border-slate-200 dark:border-prussian-blue-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-prussian-blue-100 text-center ${
+                            errors.endValue ? 'border-red-500 focus:ring-red-500/20' : ''
+                          }`}
+                        />
+                        <span className="text-xs text-slate-500 dark:text-prussian-blue-300 font-bold uppercase tracking-wide">ocurrencias / veces</span>
+                        {errors.endValue && (
+                          <p className="text-red-500 text-xs flex items-center gap-1 mt-1 font-semibold">
+                            <AlertCircle className="w-3.5 h-3.5" /> {errors.endValue}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              )}
+
+              {/* Occurrences Preview Panel */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-bold text-slate-500 dark:text-prussian-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-blue-500" />
+                  Próximas 5 Ocurrencias (Vista Previa)
+                </label>
+                {previewOccurrences.length > 0 ? (
+                  <div className="bg-slate-50 dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-2xl p-3.5 space-y-1.5 shadow-inner">
+                    {previewOccurrences.map((occ, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-prussian-blue-200">
+                        <div className="w-5 h-5 rounded-full bg-blue-50 dark:bg-baltic-blue-950 text-blue-600 dark:text-baltic-blue-400 flex items-center justify-center text-[10px] font-extrabold select-none">
+                          {idx + 1}
+                        </div>
+                        <span>{formatOccurDate(occ)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 dark:bg-prussian-blue-900 border border-dashed border-slate-200 dark:border-prussian-blue-800 rounded-2xl p-4 text-center text-xs italic text-slate-400">
+                    No hay ocurrencias futuras programadas con estas reglas.
+                  </div>
                 )}
               </div>
+
 
               {/* Description */}
               <div className="space-y-1.5">
