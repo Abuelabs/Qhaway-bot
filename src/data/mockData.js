@@ -109,8 +109,6 @@ export const mockSosContacts = [
   }
 ];
 
-<<<<<<< HEAD
-=======
 export const mockElderProfiles = [
   {
     id: 1,
@@ -248,8 +246,6 @@ export const mockNotifications = [
     read: true
   }
 ];
-
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 export const mockActivityLogs = [
   {
     id: 1,

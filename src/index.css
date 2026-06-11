@@ -1,10 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
-<<<<<<< HEAD
-@theme {
-  --font-sans: 'Outfit', sans-serif;
-=======
 /* Enables the `dark:` variant via a `.dark` class on a parent element instead of relying on prefers-color-scheme */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -70,17 +66,14 @@
   --color-rose-wine-800: #4d192a;
   --color-rose-wine-900: #270c15;
   --color-rose-wine-950: #1b090f;
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 }
 
 body {
   font-family: 'Outfit', sans-serif;
   background-color: var(--color-slate-50);
 }
-<<<<<<< HEAD
-=======
+
 
 .dark body {
   background-color: var(--color-prussian-blue-950);
 }
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)

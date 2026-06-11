@@ -1,30 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import ContactsView from './ContactsView';
-<<<<<<< HEAD
 import RoutinesView from './RoutinesView';
 import Mensajeria from './Mensajeria';
-import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft } from 'lucide-react';
-import { mockElderProfile, mockRoutines } from '../data/mockData';
-import RoutinesProgressBar from './ui/RoutinesProgressBar';
-
-export default function Dashboard({ adminName = "ADMIN" }) {
-  const [revealed, setRevealed] = useState(false);
-  const [currentView, setCurrentView] = useState('home');
-  const [routines, setRoutines] = useState(() => 
-    mockRoutines.map(r => ({
-      id: r.id,
-      name: r.title || r.name,
-      repeat: r.repeat !== undefined ? r.repeat : true,
-      days: r.days || (r.id === 5 ? "Sá, Do" : (r.id === 2 ? "Lu, Ma, Mi, Ju, Vi" : "Todos los días")),
-      time: r.time,
-      description: r.desc || r.description || "",
-      status: r.status || "pending",
-      urgency: r.urgency || "medium",
-      category: r.category || "general"
-    }))
-  );
-=======
 import ProfilePanel from './ProfilePanel';
 import RobotStatusView from './RobotStatusView';
 import HealthView from './HealthView';
@@ -46,7 +24,26 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
     notifications: { sos: true, dailySummary: true, sounds: false }
   });
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
+
+  const [routinesByElder, setRoutinesByElder] = useState(() => {
+    // Normalize mockRoutinesByElder so that they have 'name' and 'description' properties
+    const normalized = {};
+    Object.entries(mockRoutinesByElder).forEach(([elderId, list]) => {
+      normalized[elderId] = list.map(r => ({
+        id: r.id,
+        name: r.name || r.title || "",
+        repeat: r.repeat !== undefined ? r.repeat : true,
+        days: r.days || (r.id === 5 ? "Sá, Do" : (r.id === 2 ? "Lu, Ma, Mi, Ju, Vi" : "Todos los días")),
+        time: r.time,
+        description: r.description || r.desc || "",
+        status: r.status || "pending",
+        urgency: r.urgency || "medium",
+        category: r.category || "general",
+        completedAt: r.completedAt || null
+      }));
+    });
+    return normalized;
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -55,17 +52,11 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
     return () => clearTimeout(timer);
   }, []);
 
-<<<<<<< HEAD
-  const completedRoutines = routines.filter(r => r.status === 'completed').length;
-  const totalRoutines = routines.length;
-  const completionPercent = totalRoutines > 0 ? Math.round((completedRoutines / totalRoutines) * 100) : 0;
-=======
   const selectedElder = mockElderProfiles.find(e => e.id === selectedElderId) || mockElderProfiles[0];
-  const elderRoutines = mockRoutinesByElder[selectedElderId] || [];
+  const elderRoutines = routinesByElder[selectedElderId] || [];
   const completedRoutines = elderRoutines.filter(r => r.status === 'completed').length;
   const totalRoutines = elderRoutines.length;
-  const completionPercent = Math.round((completedRoutines / totalRoutines) * 100);
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
+  const completionPercent = totalRoutines > 0 ? Math.round((completedRoutines / totalRoutines) * 100) : 0;
 
   return (
     <div className="bg-slate-950 w-full min-h-screen overflow-hidden">
@@ -74,12 +65,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
           clipPath: revealed ? 'circle(150% at 50vw 50vh)' : 'circle(0% at 50vw 50vh)',
           transition: 'clip-path 4.5s cubic-bezier(0.16, 1, 0.3, 1)'
         }}
-<<<<<<< HEAD
-        className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col antialiased"
-      >
-        {/* Universal Top Bar */}
-        <Navbar adminName={adminName} />
-=======
         className="min-h-screen bg-slate-50 dark:bg-prussian-blue-950 text-slate-800 dark:text-prussian-blue-100 font-sans flex flex-col antialiased transition-colors duration-300"
       >
         {/* Universal Top Bar */}
@@ -93,7 +78,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
           onSave={setProfile}
           onLogout={onLogout}
         />
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 
         {/* Main Content Area */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col">
@@ -101,10 +85,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
           {currentView === 'home' ? (
             <div className="space-y-8 animate-fade-in flex-1 flex flex-col justify-center py-12">
               <div className="text-center max-w-3xl mx-auto mb-8 -mt-2.5 flex flex-col items-center">
-<<<<<<< HEAD
-                <h2 className="text-4xl sm:text-5xl font-black text-slate-900 tracking-tight">Estamos cuidando a {mockElderProfile.name}</h2>
-                <p className="text-slate-500 text-sm sm:text-base mt-3">Selecciona un panel a continuación para gestionar los servicios de Qhawaybot.</p>
-=======
                 <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{t('dashboard.caringFor')} {selectedElder.name}</h2>
                 <p className="text-slate-500 dark:text-prussian-blue-300 text-sm sm:text-base mt-3">{t('dashboard.subtitle')}</p>
 
@@ -125,7 +105,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                     <ChevronDown className="w-3.5 h-3.5 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-prussian-blue-400 pointer-events-none" />
                   </div>
                 )}
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
 
                 {/* Reusable UI Progress Bar */}
                 <RoutinesProgressBar completed={completedRoutines} total={totalRoutines} />
@@ -137,16 +116,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                 {/* CARD 1: Rutinas */}
                 <div
                   onClick={() => setCurrentView('rutinas')}
-<<<<<<< HEAD
-                  className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                    <CalendarRange className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg mb-1">Rutinas</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">Configura tareas, medicamentos y actividades programadas.</p>
-=======
                   className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
                 >
                   <div className="w-12 h-12 bg-blue-50 dark:bg-baltic-blue-950 text-blue-600 dark:text-baltic-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
@@ -155,23 +124,12 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.rutinas.title')}</h3>
                     <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.rutinas.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                   </div>
                 </div>
 
                 {/* CARD 2: Contactos */}
                 <div
                   onClick={() => setCurrentView('contactos')}
-<<<<<<< HEAD
-                  className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg mb-1">Contactos</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">Monitorea números telefónicos y prioridades de alerta SOS.</p>
-=======
                   className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
                 >
                   <div className="w-12 h-12 bg-green-50 dark:bg-verdigris-950 text-green-600 dark:text-verdigris-400 rounded-2xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
@@ -180,23 +138,12 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.contactos.title')}</h3>
                     <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.contactos.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                   </div>
                 </div>
 
                 {/* CARD 3: Mensajes */}
                 <div
                   onClick={() => setCurrentView('mensajes')}
-<<<<<<< HEAD
-                  className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
-                    <MessageSquare className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg mb-1">Mensajes</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">Envía audios y comunicados de voz directamente al altavoz.</p>
-=======
                   className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
                 >
                   <div className="w-12 h-12 bg-purple-50 dark:bg-rose-wine-950 text-purple-600 dark:text-rose-wine-400 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
@@ -205,23 +152,12 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.mensajes.title')}</h3>
                     <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.mensajes.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                   </div>
                 </div>
 
                 {/* CARD 4: Biblioteca */}
                 <div
                   onClick={() => setCurrentView('biblioteca')}
-<<<<<<< HEAD
-                  className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
-                    <BookOpen className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-lg mb-1">Biblioteca</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">Sube audiolibros, lecturas y música de estimulación cognitiva.</p>
-=======
                   className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
                 >
                   <div className="w-12 h-12 bg-orange-50 dark:bg-chocolate-950 text-orange-600 dark:text-chocolate-400 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
@@ -272,7 +208,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.actividad.title')}</h3>
                     <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.actividad.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                   </div>
                 </div>
 
@@ -285,65 +220,44 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
               <div>
                 <button
                   onClick={() => setCurrentView('home')}
-<<<<<<< HEAD
-                  className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-bold transition hover:underline cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Volver al Panel Principal
-=======
                   className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 dark:text-prussian-blue-300 dark:hover:text-white text-sm font-bold transition hover:underline cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   {t('dashboard.back')}
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                 </button>
               </div>
 
               {/* Conditional Views content */}
               {currentView === 'rutinas' && (
-<<<<<<< HEAD
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs">
-                  <RoutinesView routines={routines} setRoutines={setRoutines} />
-=======
-                <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
-                  <CalendarRange className="w-12 h-12 text-blue-500 mb-3 animate-pulse" />
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('dashboard.placeholders.rutinas.title')}</h3>
-                  <p className="text-xs text-slate-400 dark:text-prussian-blue-400 max-w-xs leading-relaxed">{t('dashboard.placeholders.rutinas.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
+                <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
+                  <RoutinesView 
+                    routines={elderRoutines} 
+                    setRoutines={(updatedRoutines) => {
+                      setRoutinesByElder(prev => {
+                        const next = typeof updatedRoutines === 'function' ? updatedRoutines(prev[selectedElderId] || []) : updatedRoutines;
+                        return {
+                          ...prev,
+                          [selectedElderId]: next
+                        };
+                      });
+                    }} 
+                  />
                 </div>
               )}
 
               {currentView === 'contactos' && (
-<<<<<<< HEAD
-                <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-xs">
-                  <ContactsView />
-                </div>
-              )}
-              {currentView === 'mensajes' && (
-                <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-xs" style={{ minHeight: '600px' }}>
-                  <Mensajeria />
-=======
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
                   <ContactsView />
                 </div>
               )}
 
               {currentView === 'mensajes' && (
-                <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
-                  <MessageSquare className="w-12 h-12 text-purple-500 mb-3 animate-pulse" />
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('dashboard.placeholders.mensajes.title')}</h3>
-                  <p className="text-xs text-slate-400 dark:text-prussian-blue-400 max-w-xs leading-relaxed">{t('dashboard.placeholders.mensajes.desc')}</p>
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
+                <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl overflow-hidden shadow-xs" style={{ minHeight: '600px' }}>
+                  <Mensajeria />
                 </div>
               )}
 
               {currentView === 'biblioteca' && (
-<<<<<<< HEAD
-                <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
-                  <BookOpen className="w-12 h-12 text-orange-500 mb-3 animate-pulse" />
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Biblioteca Digital</h3>
-                  <p className="text-xs text-slate-400 max-w-xs leading-relaxed">Esta sección está vacía. Próximamente gestionarás audiolibros y música.</p>
-=======
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-12 text-center min-h-[350px] flex flex-col items-center justify-center">
                   <BookOpen className="w-12 h-12 text-orange-500 mb-3 animate-pulse" />
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-1">{t('dashboard.placeholders.biblioteca.title')}</h3>
@@ -366,7 +280,6 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
               {currentView === 'actividad' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
                   <ActivityLogView />
->>>>>>> d3b1d46 (Primer commit del proyecto Qhaway-bot)
                 </div>
               )}
 
