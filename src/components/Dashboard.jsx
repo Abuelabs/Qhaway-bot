@@ -8,7 +8,7 @@ import RobotStatusView from './RobotStatusView';
 import HealthView from './HealthView';
 import ActivityLogView from './ActivityLogView';
 import RadialSidebar from './RadialSidebar';
-import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethoscope, History, ChevronDown, Wifi, WifiOff, Battery, AlertTriangle, Clock, Power } from 'lucide-react';
+import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethoscope, History, ChevronDown, Wifi, WifiOff, Battery, AlertTriangle, Clock, Power, Mic } from 'lucide-react';
 import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 import { useLanguage } from '../context/LanguageContext';
@@ -342,26 +342,44 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                         const lastReceivedMsg = messages.filter(m => m.from === 'abuelo').slice(-1)[0];
                         if (lastReceivedMsg) {
                           return (
-                            <div className="flex items-start gap-3 bg-slate-50 dark:bg-prussian-blue-800/30 border border-slate-100/50 dark:border-prussian-blue-800/40 p-3 rounded-2xl animate-fade-in">
-                              <div className="w-9 h-9 bg-amber-50 dark:bg-chocolate-950/50 text-amber-700 dark:text-chocolate-400 rounded-xl flex items-center justify-center shrink-0 text-xs font-black">
-                                A
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-bold text-slate-800 dark:text-white">Abuelo</span>
-                                  <span className="text-[10px] text-slate-400 dark:text-prussian-blue-400 font-semibold">
-                                    {new Date(lastReceivedMsg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
+                            <div className="flex items-center gap-3 animate-fade-in">
+                              <div className="flex items-start gap-3 bg-slate-50 dark:bg-prussian-blue-800/30 border border-slate-100/50 dark:border-prussian-blue-800/40 p-3 rounded-2xl flex-1 min-w-0">
+                                <div className="w-9 h-9 bg-amber-50 dark:bg-chocolate-950/50 text-amber-700 dark:text-chocolate-400 rounded-xl flex items-center justify-center shrink-0 text-xs font-black">
+                                  A
                                 </div>
-                                <p className="text-xs text-slate-650 dark:text-prussian-blue-200 mt-1 italic line-clamp-2 leading-relaxed">
-                                  "{lastReceivedMsg.text}"
-                                </p>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-xs font-bold text-slate-800 dark:text-white">Abuelo</span>
+                                    <span className="text-[10px] text-slate-400 dark:text-prussian-blue-400 font-semibold">
+                                      {new Date(lastReceivedMsg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-650 dark:text-prussian-blue-200 mt-1 italic line-clamp-2 leading-relaxed">
+                                    "{lastReceivedMsg.text}"
+                                  </p>
+                                </div>
                               </div>
+                              <button
+                                onClick={() => alert("Función de grabación de audio no implementada")}
+                                className="w-11 h-11 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-300 cursor-pointer shadow-md shadow-blue-600/10 hover:shadow-lg hover:shadow-blue-600/20 shrink-0 flex items-center justify-center"
+                                title="Enviar audio al abuelo"
+                              >
+                                <Mic className="w-5 h-5" />
+                              </button>
                             </div>
                           );
                         }
                         return (
-                          <span className="text-xs text-slate-400 dark:text-prussian-blue-400 italic">No hay mensajes recibidos aún</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-slate-400 dark:text-prussian-blue-400 italic flex-1">No hay mensajes recibidos aún</span>
+                            <button
+                              onClick={() => alert("Función de grabación de audio no implementada")}
+                              className="w-11 h-11 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-300 cursor-pointer shadow-md shadow-blue-600/10 hover:shadow-lg hover:shadow-blue-600/20 shrink-0 flex items-center justify-center"
+                              title="Enviar audio al abuelo"
+                            >
+                              <Mic className="w-5 h-5" />
+                            </button>
+                          </div>
                         );
                       })()}
                     </div>
