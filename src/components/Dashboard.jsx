@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import NotificationsBell from './NotificationsBell';
 import ContactsView from './ContactsView';
 import RoutinesView from './RoutinesView';
-import Mensajeria from './Mensajeria';
+import Mensajeria, { MOCK_INITIAL_MESSAGES } from './Mensajeria';
 import ProfilePanel from './ProfilePanel';
 import RobotStatusView from './RobotStatusView';
 import HealthView from './HealthView';
 import ActivityLogView from './ActivityLogView';
 import RadialSidebar from './RadialSidebar';
-import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethoscope, History, ChevronDown } from 'lucide-react';
+import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethoscope, History, ChevronDown, Wifi, WifiOff, Battery, AlertTriangle, Clock, Power } from 'lucide-react';
 import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 import { useLanguage } from '../context/LanguageContext';
@@ -17,8 +17,13 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
   const { t } = useLanguage();
   const [revealed, setRevealed] = useState(false);
   const [currentView, setCurrentView] = useState('home');
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const [selectedElderId, setSelectedElderId] = useState(mockElderProfiles[0].id);
+  const [isBotOnline, setIsBotOnline] = useState(true);
+  const [isBotOn, setIsBotOn] = useState(false);
+  const [isTracking, setIsTracking] = useState(true);
+  const [messages, setMessages] = useState(MOCK_INITIAL_MESSAGES);
   const [profile, setProfile] = useState({
     name: adminName,
     birthdate: '',
@@ -110,6 +115,29 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
   const totalRoutines = elderRoutines.length;
   const completionPercent = totalRoutines > 0 ? Math.round((completedRoutines / totalRoutines) * 100) : 0;
 
+  // State to manage profile panel visibility (renamed to avoid collisions)
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Calculate next pending routine
+  const getNextRoutine = () => {
+    const pendingRoutines = elderRoutines.filter(r => r.status === 'pending');
+    if (pendingRoutines.length === 0) return null;
+
+    const timeToMin = (t) => {
+      if (!t) return 0;
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const sorted = [...pendingRoutines].sort((a, b) => timeToMin(a.time) - timeToMin(b.time));
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const next = sorted.find(r => timeToMin(r.time) >= currentMinutes);
+    return next || sorted[0];
+  };
+  const nextRoutine = getNextRoutine();
+
   return (
     <div className="bg-slate-950 w-full min-h-screen overflow-hidden">
       <div
@@ -182,107 +210,163 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                 <RoutinesProgressBar completed={completedRoutines} total={totalRoutines} />
               </div>
 
-              {/* Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto w-full">
-
-                {/* CARD 1: Rutinas */}
-                <div
-                  onClick={() => setCurrentView('rutinas')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-blue-50 dark:bg-baltic-blue-950 text-blue-600 dark:text-baltic-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                    <CalendarRange className="w-6 h-6" />
+              {/* Qhawaybot Connection Status Panel */}
+              <div className="bg-white dark:bg-prussian-blue-900 border border-slate-200/60 dark:border-prussian-blue-800/80 rounded-3xl p-6 max-w-2xl w-full mx-auto shadow-xs mt-6 transition-all duration-300">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-prussian-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-blue-600 dark:text-baltic-blue-400" />
+                    <span className="font-extrabold text-sm text-slate-800 dark:text-white tracking-tight">Qhawaybot V1</span>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.rutinas.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.rutinas.desc')}</p>
+                  
+                  <div className="flex items-center gap-2">
+                    {/* Interactive Connection Status Badge */}
+                    <button 
+                      onClick={() => setIsBotOnline(!isBotOnline)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                        isBotOnline 
+                          ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-100 dark:border-green-900/50' 
+                          : 'bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-900/50'
+                      }`}
+                      title="Haz clic para alternar el estado de conexión del robot"
+                    >
+                      <span className={`w-2 h-2 rounded-full ${isBotOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+                      {isBotOnline ? 'En línea' : 'Sin conexión'}
+                    </button>
+
+                    {/* Interactive Tracking Status Badge */}
+                    {isBotOnline && isBotOn && (
+                      <button
+                        onClick={() => setIsTracking(!isTracking)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all border cursor-pointer ${
+                          isTracking
+                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/50'
+                            : 'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-100/55 dark:border-amber-900/50'
+                        }`}
+                        title="Haz clic para alternar el modo de seguimiento"
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isTracking ? 'bg-blue-500 animate-pulse' : 'bg-amber-500'}`} />
+                        {isTracking ? 'Seguimiento' : 'Modo Espera'}
+                      </button>
+                    )}
+
+                    {/* Minimized red power-off button */}
+                    {isBotOnline && isBotOn && (
+                      <button
+                        onClick={() => setIsBotOn(false)}
+                        className="p-1.5 bg-red-500/10 hover:bg-red-650 hover:text-white text-red-500 rounded-xl border border-red-500/25 transition-all duration-300 cursor-pointer flex items-center justify-center hover:-translate-y-0.5 active:translate-y-0"
+                        title="Apagar Robot"
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {/* CARD 2: Contactos */}
-                <div
-                  onClick={() => setCurrentView('contactos')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-green-50 dark:bg-verdigris-950 text-green-600 dark:text-verdigris-400 rounded-2xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
-                    <Users className="w-6 h-6" />
+                {!isBotOnline ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center animate-fade-in">
+                    <div className="w-16 h-16 bg-red-50 dark:bg-red-950/20 text-red-500 rounded-full flex items-center justify-center mb-3">
+                      <WifiOff className="w-8 h-8" />
+                    </div>
+                    <h3 className="font-bold text-slate-900 dark:text-white text-base">Bot Sin Conexión</h3>
+                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 max-w-sm mt-1 leading-relaxed">
+                      Qhawaybot no responde. Comprueba que el robot esté encendido, tenga batería y esté conectado a la misma red Wi-Fi.
+                    </p>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.contactos.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.contactos.desc')}</p>
+                ) : !isBotOn ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center animate-fade-in gap-3">
+                    <button
+                      onClick={() => setIsBotOn(true)}
+                      className="w-20 h-20 bg-green-600 hover:bg-green-500 text-white rounded-full flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer shadow-lg shadow-green-600/25 hover:shadow-green-500/40"
+                      title="Iniciar Robot"
+                    >
+                      <Power className="w-9 h-9" />
+                    </button>
+                    <span className="font-bold text-slate-800 dark:text-prussian-blue-250 text-sm tracking-wide">
+                      Iniciar Robot
+                    </span>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex flex-col divide-y divide-slate-100 dark:divide-prussian-blue-800 animate-fade-in">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 pb-4 md:divide-x divide-slate-100 dark:divide-prussian-blue-800">
+                      {/* Battery Status */}
+                      <div className="flex flex-col justify-center pb-4 md:pb-0 md:pr-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Nivel de Batería</span>
+                          <span className="text-sm font-black text-slate-800 dark:text-white">85%</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Battery className="w-6 h-6 text-green-600 dark:text-green-400 shrink-0" />
+                          <div className="w-full h-2.5 bg-slate-100 dark:bg-prussian-blue-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-green-500 rounded-full" style={{ width: '85%' }} />
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-slate-400 dark:text-prussian-blue-400 mt-2 font-medium">Estado: Excelente · {isTracking ? 'Seguimiento activo' : 'En modo espera'}</span>
+                      </div>
 
-                {/* CARD 3: Mensajes */}
-                <div
-                  onClick={() => setCurrentView('mensajes')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-purple-50 dark:bg-rose-wine-950 text-purple-600 dark:text-rose-wine-400 rounded-2xl flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
-                    <MessageSquare className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.mensajes.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.mensajes.desc')}</p>
-                  </div>
-                </div>
+                      {/* Next Reminder */}
+                      <div className="pt-4 md:pt-0 md:pl-6 flex flex-col justify-center">
+                        <span className="text-xs font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider mb-2">Siguiente Recordatorio</span>
+                        {nextRoutine ? (
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 bg-blue-50 dark:bg-baltic-blue-950/50 text-blue-600 dark:text-baltic-blue-400 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                              <Clock className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-blue-600 dark:text-baltic-blue-400">{nextRoutine.time}</span>
+                                <span className="text-[9px] font-black uppercase bg-slate-100 dark:bg-prussian-blue-800 text-slate-500 dark:text-prussian-blue-300 px-1.5 py-0.5 rounded-md">
+                                  {nextRoutine.category}
+                                </span>
+                              </div>
+                              <h4 className="text-sm font-bold text-slate-800 dark:text-white leading-tight mt-0.5">
+                                {nextRoutine.name}
+                              </h4>
+                              <p className="text-[11px] text-slate-400 dark:text-prussian-blue-400 leading-relaxed mt-0.5 line-clamp-1">
+                                {nextRoutine.description}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-slate-400 dark:text-prussian-blue-400 py-1">
+                            <AlertTriangle className="w-4 h-4 text-slate-300 dark:text-prussian-blue-600" />
+                            <span className="text-xs italic">No hay recordatorios pendientes para hoy</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                {/* CARD 4: Biblioteca */}
-                <div
-                  onClick={() => setCurrentView('biblioteca')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-orange-50 dark:bg-chocolate-950 text-orange-600 dark:text-chocolate-400 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
-                    <BookOpen className="w-6 h-6" />
+                    {/* Last Received Message Section */}
+                    <div className="pt-4 flex flex-col justify-center">
+                      <span className="text-xs font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider mb-2">Último Mensaje Recibido</span>
+                      {(() => {
+                        const lastReceivedMsg = messages.filter(m => m.from === 'abuelo').slice(-1)[0];
+                        if (lastReceivedMsg) {
+                          return (
+                            <div className="flex items-start gap-3 bg-slate-50 dark:bg-prussian-blue-800/30 border border-slate-100/50 dark:border-prussian-blue-800/40 p-3 rounded-2xl animate-fade-in">
+                              <div className="w-9 h-9 bg-amber-50 dark:bg-chocolate-950/50 text-amber-700 dark:text-chocolate-400 rounded-xl flex items-center justify-center shrink-0 text-xs font-black">
+                                A
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-bold text-slate-800 dark:text-white">Abuelo</span>
+                                  <span className="text-[10px] text-slate-400 dark:text-prussian-blue-400 font-semibold">
+                                    {new Date(lastReceivedMsg.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-650 dark:text-prussian-blue-200 mt-1 italic line-clamp-2 leading-relaxed">
+                                  "{lastReceivedMsg.text}"
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <span className="text-xs text-slate-400 dark:text-prussian-blue-400 italic">No hay mensajes recibidos aún</span>
+                        );
+                      })()}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.biblioteca.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.biblioteca.desc')}</p>
-                  </div>
-                </div>
-
-                {/* CARD 5: Estado del Robot */}
-                <div
-                  onClick={() => setCurrentView('robot')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-blue-50 dark:bg-baltic-blue-950 text-blue-600 dark:text-baltic-blue-400 rounded-2xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                    <Bot className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.robot.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.robot.desc')}</p>
-                  </div>
-                </div>
-
-                {/* CARD 6: Salud */}
-                <div
-                  onClick={() => setCurrentView('salud')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-green-50 dark:bg-verdigris-950 text-green-600 dark:text-verdigris-400 rounded-2xl flex items-center justify-center group-hover:bg-green-600 group-hover:text-white transition-all duration-300">
-                    <Stethoscope className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.salud.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.salud.desc')}</p>
-                  </div>
-                </div>
-
-                {/* CARD 7: Actividad */}
-                <div
-                  onClick={() => setCurrentView('actividad')}
-                  className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between group min-h-[180px]"
-                >
-                  <div className="w-12 h-12 bg-orange-50 dark:bg-chocolate-950 text-orange-600 dark:text-chocolate-400 rounded-2xl flex items-center justify-center group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
-                    <History className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">{t('dashboard.cards.actividad.title')}</h3>
-                    <p className="text-xs text-slate-400 dark:text-prussian-blue-400 leading-relaxed">{t('dashboard.cards.actividad.desc')}</p>
-                  </div>
-                </div>
-
+                )}
               </div>
             </div>
           ) : (
@@ -325,7 +409,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
 
               {currentView === 'mensajes' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl overflow-hidden shadow-xs" style={{ minHeight: '600px' }}>
-                  <Mensajeria />
+                  <Mensajeria messages={messages} setMessages={setMessages} />
                 </div>
               )}
 
@@ -339,7 +423,14 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
 
               {currentView === 'robot' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
-                  <RobotStatusView />
+                  <RobotStatusView 
+                    isOnline={isBotOnline} 
+                    setIsOnline={setIsBotOnline} 
+                    isBotOn={isBotOn}
+                    setIsBotOn={setIsBotOn}
+                    isTracking={isTracking}
+                    setIsTracking={setIsTracking}
+                  />
                 </div>
               )}
 

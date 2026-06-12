@@ -7,7 +7,7 @@ import {
 // ---------------------------------------------------------------------------
 // Mock data — reemplazar con llamadas reales a la API del robot / Gmail
 // ---------------------------------------------------------------------------
-const MOCK_INITIAL_MESSAGES = [
+export const MOCK_INITIAL_MESSAGES = [
   {
     id: 1,
     from: 'abuelo',
@@ -250,8 +250,10 @@ function MessageBubble({ msg, speakingId, onToggleSpeak }) {
 // ---------------------------------------------------------------------------
 // Componente principal
 // ---------------------------------------------------------------------------
-export default function Mensajeria() {
-  const [messages, setMessages] = useState(MOCK_INITIAL_MESSAGES)
+export default function Mensajeria({ messages: propMessages, setMessages: propSetMessages }) {
+  const [localMessages, setLocalMessages] = useState(MOCK_INITIAL_MESSAGES)
+  const messages = propMessages || localMessages
+  const setMessages = propSetMessages || setLocalMessages
   const [inputText, setInputText] = useState('')
   const [activeTab, setActiveTab] = useState('chat') // 'chat' | 'sos'
   const [speakingId, setSpeakingId] = useState(null)
