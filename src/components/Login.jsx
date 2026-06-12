@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Heart, Lock, Unlock } from 'lucide-react'
+import { supabase } from '../supabase'
 
-export default function Login({ onLoginSuccess, onSwitchToRegister }) {
+export default function Login({ onLoginSuccess, onStartTransition, onSwitchToRegister }) {
   const [welcomeClicked, setWelcomeClicked] = useState(false)
+  const [error, setError] = useState('')
   
   // Stages: 'welcome' | 'typing-part1' | 'user-input' | 'typing-part2' | 'email-input' | 'typing-part3' | 'password-input' | 'unlocking'
   const [stage, setStage] = useState('welcome')
@@ -122,15 +124,47 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
     }
   }
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     if (password.trim().length >= 4) {
       setLoading(true)
+      setError('')
       
-      // Phase 1: Wait for simulated sync
-      setTimeout(() => {
+      try {
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password
+        })
+
+        if (authError) {
+          setError(
+            authError.message === 'Invalid login credentials' 
+              ? 'Credenciales incorrectas. Verifica tu correo y contraseña.' 
+              : authError.message
+          )
+          setLoading(false)
+          return
+        }
+
+        // Notify parent to lock view transitions
+        if (onStartTransition) onStartTransition()
+
+        // Fetch name for personalization
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        const name = profileData?.full_name || username || 'Usuario'
+        setUsername(name)
+
+        // Stage animation
         setLoading(false)
         setStage('unlocking')
-      }, 1500)
+      } catch (e) {
+        setError(e.message || 'Error de conexión')
+        setLoading(false)
+      }
     }
   }
 
@@ -304,6 +338,13 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
               {/* Typewriter Cursor */}
               {(stage === 'typing-part1' || stage === 'typing-part2' || stage === 'typing-part3') && (
                 <span className="inline-block w-1.5 h-4 bg-blue-500 ml-1 animate-pulse"></span>
+              )}
+
+              {/* Error message */}
+              {error && (
+                <p className="text-rose-400 text-xs font-bold mt-4 bg-rose-950/30 border border-rose-900/50 rounded-xl px-3 py-2 text-center max-w-xs mx-auto animate-fade-in font-sans">
+                  {error}
+                </p>
               )}
 
               {/* Final Sincronizar Action Button */}

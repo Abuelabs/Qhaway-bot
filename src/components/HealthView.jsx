@@ -1,19 +1,59 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { HeartPulse, Activity, Droplet, Thermometer, Moon, Footprints, Stethoscope, ShieldCheck, AlertCircle, Phone, User } from 'lucide-react';
 import { mockVitalsByElder } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../supabase';
 
 export default function HealthView({ elderId = 1, elderName = '', elder = null }) {
   const { t } = useLanguage();
-  const vitals = mockVitalsByElder[elderId] || mockVitalsByElder[1];
+  const [vitals, setVitals] = useState(mockVitalsByElder[elderId] || mockVitalsByElder[1]);
+
+  useEffect(() => {
+    const fetchVitals = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('vitals')
+          .select('*')
+          .eq('elder_id', elderId)
+          .order('last_updated', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          setVitals({
+            heartRate: data.heart_rate,
+            bloodPressure: data.blood_pressure,
+            spo2: data.spo2,
+            temperature: data.temperature,
+            sleepHours: data.sleep_hours,
+            steps: data.steps,
+            lastUpdated: new Date(data.last_updated).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+          });
+        } else {
+          setVitals(mockVitalsByElder[elderId] || mockVitalsByElder[1] || {
+            heartRate: 72,
+            bloodPressure: "120/80",
+            spo2: 98,
+            temperature: 36.5,
+            sleepHours: 7.0,
+            steps: 0,
+            lastUpdated: "Hace instantes"
+          });
+        }
+      } catch (e) {
+        console.error('Error fetching vitals:', e);
+      }
+    };
+    fetchVitals();
+  }, [elderId]);
 
   const stats = [
-    { key: 'heartRate', label: t('health.heartRate'), value: `${vitals.heartRate} bpm`, icon: HeartPulse, color: 'rose-wine' },
-    { key: 'bloodPressure', label: t('health.bloodPressure'), value: vitals.bloodPressure, icon: Activity, color: 'baltic-blue' },
-    { key: 'spo2', label: t('health.spo2'), value: `${vitals.spo2}%`, icon: Droplet, color: 'verdigris' },
-    { key: 'temperature', label: t('health.temperature'), value: `${vitals.temperature}°C`, icon: Thermometer, color: 'chocolate' },
-    { key: 'sleepHours', label: t('health.sleep'), value: `${vitals.sleepHours} h`, icon: Moon, color: 'baltic-blue' },
-    { key: 'steps', label: t('health.steps'), value: vitals.steps.toLocaleString('es-PE'), icon: Footprints, color: 'verdigris' },
+    { key: 'heartRate', label: t('health.heartRate'), value: `${vitals.heartRate || 0} bpm`, icon: HeartPulse, color: 'rose-wine' },
+    { key: 'bloodPressure', label: t('health.bloodPressure'), value: vitals.bloodPressure || '120/80', icon: Activity, color: 'baltic-blue' },
+    { key: 'spo2', label: t('health.spo2'), value: `${vitals.spo2 || 98}%`, icon: Droplet, color: 'verdigris' },
+    { key: 'temperature', label: t('health.temperature'), value: `${vitals.temperature || 36.5}°C`, icon: Thermometer, color: 'chocolate' },
+    { key: 'sleepHours', label: t('health.sleep'), value: `${vitals.sleepHours || 7} h`, icon: Moon, color: 'baltic-blue' },
+    { key: 'steps', label: t('health.steps'), value: vitals.steps != null ? vitals.steps.toLocaleString('es-PE') : '0', icon: Footprints, color: 'verdigris' },
   ];
 
   const colorClasses = {

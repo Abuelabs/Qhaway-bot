@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Heart, User, Users, ShieldCheck, Plus, Trash2, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
+import { supabase } from '../supabase'
 
 // Health insurance providers available in Perú
 export const HEALTH_INSURANCE_OPTIONS = [
@@ -57,6 +58,7 @@ export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [elders, setElders] = useState([emptyElder()])
 
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const updateAdmin = (field, value) => setAdmin((prev) => ({ ...prev, [field]: value }))
 
@@ -119,33 +121,111 @@ export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
     setStep((s) => Math.max(s - 1, 1))
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateAdminStep() || !validateEldersStep()) {
       setStep(1)
       return
     }
 
-    const normalizedElders = elders.map((elder, idx) => ({
-      id: idx + 1,
-      name: elder.name.trim(),
-      age: Number(elder.age) || 0,
-      sex: elder.sex,
-      bloodType: elder.bloodType,
-      condition: elder.conditions.trim() || 'Sin condiciones registradas',
-      conditions: elder.conditions.trim(),
-      allergies: elder.allergies.trim() || 'Ninguna registrada',
-      hasInsurance: elder.hasInsurance === 'si',
-      insurance: elder.hasInsurance === 'si'
-        ? (elder.insurance === 'Otros' ? elder.insuranceOther.trim() : elder.insurance)
-        : 'Sin seguro de salud',
-      room: elder.room.trim() || 'Sin asignar',
-      emergencyContactName: elder.emergencyContactName.trim(),
-      emergencyContactPhone: elder.emergencyContactPhone.trim(),
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-      deviceStatus: 'Conectado',
-    }))
+    setLoading(true)
+    setError('')
 
-    onRegisterSuccess(admin, normalizedElders)
+    try {
+      // 1. Sign up user via Supabase
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: admin.email.trim(),
+        password: admin.password,
+        options: {
+          data: {
+            full_name: admin.fullName.trim(),
+            phone: admin.phone.trim()
+          }
+        }
+      })
+
+      if (signUpError) {
+        setError(signUpError.message)
+        setLoading(false)
+        return
+      }
+
+      const user = data.user
+      if (!user) {
+        setError('Error al registrar usuario en el servidor.')
+        setLoading(false)
+        return
+      }
+
+      // 2. Update profile (upsert ensures row exists regardless of DB trigger delays)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: admin.fullName.trim(),
+          phone: admin.phone.trim()
+        })
+
+      if (profileError) {
+        console.error('Error saving profiles:', profileError)
+      }
+
+      // 3. Insert elders associated with this caregiver
+      const eldersToInsert = elders.map((elder) => ({
+        caregiver_id: user.id,
+        name: elder.name.trim(),
+        age: Number(elder.age) || 0,
+        sex: elder.sex,
+        blood_type: elder.bloodType,
+        condition: elder.conditions.trim() || 'Sin condiciones registradas',
+        conditions: elder.conditions.trim(),
+        allergies: elder.allergies.trim() || 'Ninguna registrada',
+        has_insurance: elder.hasInsurance === 'si',
+        insurance: elder.hasInsurance === 'si'
+          ? (elder.insurance === 'Otros' ? elder.insuranceOther.trim() : elder.insurance)
+          : 'Sin seguro de salud',
+        room: elder.room.trim() || 'Sin asignar',
+        emergency_contact_name: elder.emergencyContactName.trim(),
+        emergency_contact_phone: elder.emergencyContactPhone.trim(),
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
+        device_status: 'Conectado'
+      }))
+
+      const { data: insertedElders, error: eldersError } = await supabase
+        .from('elders')
+        .insert(eldersToInsert)
+        .select()
+
+      if (eldersError) {
+        setError('Cuenta creada, pero hubo un error al registrar los abuelitos: ' + eldersError.message)
+        setLoading(false)
+        return
+      }
+
+      // Map back to format expected by App.jsx and Dashboard.jsx
+      const normalizedElders = (insertedElders || []).map((e) => ({
+        id: e.id,
+        name: e.name,
+        age: e.age,
+        sex: e.sex,
+        bloodType: e.blood_type,
+        condition: e.condition,
+        conditions: e.conditions,
+        allergies: e.allergies,
+        hasInsurance: e.has_insurance,
+        insurance: e.insurance,
+        room: e.room,
+        emergencyContactName: e.emergency_contact_name,
+        emergencyContactPhone: e.emergency_contact_phone,
+        avatar: e.avatar,
+        deviceStatus: e.device_status
+      }))
+
+      setLoading(false)
+      onRegisterSuccess(admin.fullName, normalizedElders)
+    } catch (e) {
+      setError(e.message || 'Error al conectar con el servidor')
+      setLoading(false)
+    }
   }
 
   const steps = [
@@ -548,10 +628,23 @@ export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-2xl transition shadow-lg shadow-green-500/20 active:scale-95 cursor-pointer text-sm"
+                disabled={loading}
+                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 text-white font-bold py-3 px-6 rounded-2xl transition shadow-lg shadow-green-500/20 active:scale-95 cursor-pointer text-sm font-sans"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                Crear cuenta
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creando cuenta...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Crear cuenta
+                  </>
+                )}
               </button>
             )}
           </div>

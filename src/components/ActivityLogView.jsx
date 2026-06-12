@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { History, Info, CheckCircle2, AlertTriangle, Siren } from 'lucide-react';
 import { mockActivityLogs } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../supabase';
 
 const typeStyles = {
   info: {
@@ -22,8 +23,38 @@ const typeStyles = {
   },
 };
 
-export default function ActivityLogView() {
+export default function ActivityLogView({ elderId }) {
   const { t } = useLanguage();
+  const [logs, setLogs] = useState(mockActivityLogs);
+
+  useEffect(() => {
+    if (!elderId) return;
+
+    const fetchLogs = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('activity_logs')
+          .select('*')
+          .eq('elder_id', elderId)
+          .order('created_at', { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setLogs(data.map(log => ({
+            id: log.id,
+            time: new Date(log.created_at).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }),
+            type: log.type,
+            message: log.message
+          })));
+        } else {
+          setLogs(mockActivityLogs);
+        }
+      } catch (e) {
+        console.error('Error fetching activity logs:', e);
+      }
+    };
+    fetchLogs();
+  }, [elderId]);
+
   return (
     <div className="w-full space-y-6">
 
@@ -43,10 +74,10 @@ export default function ActivityLogView() {
       {/* Timeline */}
       <div className="bg-white dark:bg-prussian-blue-800/40 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-5">
         <div className="space-y-1">
-          {mockActivityLogs.map((log, index) => {
+          {logs.map((log, index) => {
             const style = typeStyles[log.type] || typeStyles.info;
             const Icon = style.icon;
-            const isLast = index === mockActivityLogs.length - 1;
+            const isLast = index === logs.length - 1;
             return (
               <div key={log.id} className="flex gap-4">
                 <div className="flex flex-col items-center">
@@ -70,3 +101,4 @@ export default function ActivityLogView() {
     </div>
   );
 }
+

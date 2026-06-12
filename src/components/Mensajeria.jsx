@@ -3,6 +3,7 @@ import {
   Mail, Send, Volume2, VolumeX, AlertTriangle,
   CheckCheck, Check, RefreshCw, Heart, Wifi, WifiOff, X
 } from 'lucide-react'
+import { supabase } from '../supabase'
 
 // ---------------------------------------------------------------------------
 // Mock data — reemplazar con llamadas reales a la API del robot / Gmail
@@ -283,10 +284,30 @@ export default function Mensajeria({ messages: propMessages, setMessages: propSe
   const sendMessage = () => {
     if (!inputText.trim()) return
 
+    const textVal = inputText.trim()
+    setInputText('')
+    inputRef.current?.focus()
+
+    let dbId = crypto.randomUUID()
+    
+    // Save to Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        supabase.from('messages').insert({
+          id: dbId,
+          caregiver_id: session.user.id,
+          sender: 'admin',
+          text: textVal
+        }).then(({ error }) => {
+          if (error) console.error('Error saving message to Supabase:', error);
+        });
+      }
+    });
+
     const newMsg = {
-      id: Date.now(),
+      id: dbId,
       from: 'admin',
-      text: inputText.trim(),
+      text: textVal,
       timestamp: new Date(),
       isRead: true,
       isVocalized: false,
@@ -294,8 +315,6 @@ export default function Mensajeria({ messages: propMessages, setMessages: propSe
       channel: 'dashboard',
     }
     setMessages((prev) => [...prev, newMsg])
-    setInputText('')
-    inputRef.current?.focus()
 
     // Simula que el bot recibe el mensaje y lo vocaliza (~800ms de latencia)
     setTimeout(() => {
@@ -323,9 +342,22 @@ export default function Mensajeria({ messages: propMessages, setMessages: propSe
   const syncGmail = () => {
     if (!gmailConnected || isSyncing) return
     setIsSyncing(true)
-    setTimeout(() => {
+    setTimeout(async () => {
+      const dbId = crypto.randomUUID()
+      
+      // Save to Supabase
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        await supabase.from('messages').insert({
+          id: dbId,
+          caregiver_id: session.user.id,
+          sender: 'abuelo',
+          text: MOCK_GMAIL_MESSAGE.text
+        });
+      }
+
       const newMsg = {
-        id: Date.now(),
+        id: dbId,
         ...MOCK_GMAIL_MESSAGE,
         timestamp: new Date(),
         isRead: false,

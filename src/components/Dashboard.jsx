@@ -12,6 +12,7 @@ import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethosc
 import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../supabase';
 
 export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles }) {
   const { t } = useLanguage();
@@ -20,7 +21,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
   const [isOpen, setIsOpen] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const elders = elderProfiles && elderProfiles.length > 0 ? elderProfiles : mockElderProfiles;
-  const [selectedElderId, setSelectedElderId] = useState(elders[0].id);
+  const [selectedElderId, setSelectedElderId] = useState(elders[0]?.id || 1);
   const [isBotOnline, setIsBotOnline] = useState(true);
   const [isBotOn, setIsBotOn] = useState(false);
   const [isTracking, setIsTracking] = useState(true);
@@ -32,85 +33,147 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
     notifications: { sos: true, dailySummary: true, sounds: false }
   });
 
-  const [routinesByElder, setRoutinesByElder] = useState(() => {
-    // If the caregiver registered their own elder profiles, start with empty routines for each
-    if (elderProfiles && elderProfiles.length > 0) {
-      const empty = {};
-      elderProfiles.forEach((elder) => {
-        empty[elder.id] = [];
-      });
-      return empty;
-    }
+  const [routinesByElder, setRoutinesByElder] = useState({});
 
-    // Normalize mockRoutinesByElder so that they have 'name' and 'description' properties and full recurrence support
-    const normalized = {};
-    Object.entries(mockRoutinesByElder).forEach(([elderId, list]) => {
-      normalized[elderId] = list.map(r => {
-        const hasSlashDate = r.days && r.days.includes('/');
-        const defaultDateDDMMYY = hasSlashDate ? r.days : (r.id % 2 === 0 ? "11/06/26" : "10/06/26");
-        
-        // Parse DD/MM/YY back to YYYY-MM-DD
-        const parts = defaultDateDDMMYY.split('/');
-        const startDateRaw = parts.length === 3 ? `20${parts[2]}-${parts[1]}-${parts[0]}` : new Date().toISOString().split('T')[0];
-        
-        // Map legacy repeat/boolean to recurrenceRule object
-        let recRule = {
-          frequency: 'daily',
-          interval: 1,
-          end: { type: 'never' }
-        };
-        
-        if (r.repeat === false || r.repeat === 'nunca') {
-          recRule = {
-            frequency: 'daily',
-            interval: 1,
-            end: { type: 'occurrences', value: 1 }
-          };
-        } else if (r.repeat === 'diariamente') {
-          recRule = {
-            frequency: 'daily',
-            interval: 1,
-            end: { type: 'never' }
-          };
-        } else if (r.repeat === 'semanalmente') {
-          const dateObj = new Date(startDateRaw + 'T00:00:00');
-          const weekdays = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-          const weekday = weekdays[dateObj.getDay()];
-          recRule = {
-            frequency: 'weekly',
-            interval: 1,
-            byDays: [weekday],
-            end: { type: 'never' }
-          };
-        } else if (r.repeat === 'mensualmente') {
-          const dateObj = new Date(startDateRaw + 'T00:00:00');
-          recRule = {
-            frequency: 'monthly',
-            interval: 1,
-            byMonthDays: [dateObj.getDate()],
-            end: { type: 'never' }
-          };
+  // Sync profile details from Supabase profiles table
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (!error && data) {
+          setProfile({
+            name: data.full_name || adminName,
+            birthdate: '',
+            avatar: data.avatar_url || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80",
+            notifications: data.notifications || { sos: true, dailySummary: true, sounds: false }
+          });
         }
-        
-        return {
-          id: r.id,
-          name: r.name || r.title || "",
-          repeat: r.repeat !== undefined ? r.repeat : true,
-          recurrenceRule: r.recurrenceRule || recRule,
-          startDate: r.startDate || startDateRaw,
-          endDate: r.endDate || null,
-          days: defaultDateDDMMYY,
-          time: r.time,
-          description: r.description || r.desc || "",
-          status: r.status || "pending",
-          urgency: r.urgency || "medium",
-          category: r.category || "general",
-          completedAt: r.completedAt || null
-        };
-      });
-    });
-    return normalized;
-  });
+      } catch (e) {
+        console.error('Error fetching profile from Supabase:', e);
+      }
+    };
+    fetchProfileData();
+  }, [adminName]);
+
+  // Fetch routines from Supabase
+  useEffect(() => {
+    if (!selectedElderId) return;
+    const fetchRoutines = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('routines')
+          .select('*')
+          .eq('elder_id', selectedElderId)
+          .order('time', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          const mapped = data.map(r => ({
+            id: r.id,
+            name: r.name,
+            repeat: r.repeat,
+            recurrenceRule: r.recurrence_rule,
+            startDate: r.start_date,
+            endDate: r.end_date,
+            time: r.time,
+            description: r.description,
+            status: r.status,
+            urgency: r.urgency,
+            category: r.category,
+            completedAt: r.completed_at
+          }));
+          setRoutinesByElder(prev => ({
+            ...prev,
+            [selectedElderId]: mapped
+          }));
+        } else {
+          // Fallback to mock routines
+          const defaults = mockRoutinesByElder[selectedElderId] || mockRoutinesByElder[1] || [];
+          const normalized = defaults.map((r, idx) => {
+            const hasSlashDate = r.days && r.days.includes('/');
+            const defaultDateDDMMYY = hasSlashDate ? r.days : (idx % 2 === 0 ? "11/06/26" : "10/06/26");
+            const parts = defaultDateDDMMYY.split('/');
+            const startDateRaw = parts.length === 3 ? `20${parts[2]}-${parts[1]}-${parts[0]}` : new Date().toISOString().split('T')[0];
+            return {
+              id: r.id,
+              name: r.name || r.title || "",
+              repeat: r.repeat !== undefined ? r.repeat : true,
+              recurrenceRule: r.recurrenceRule || { frequency: 'daily', interval: 1, end: { type: 'never' } },
+              startDate: r.startDate || startDateRaw,
+              endDate: r.endDate || null,
+              days: defaultDateDDMMYY,
+              time: r.time,
+              description: r.description || r.desc || "",
+              status: r.status || "pending",
+              urgency: r.urgency || "medium",
+              category: r.category || "general",
+              completedAt: r.completedAt || null
+            };
+          });
+          setRoutinesByElder(prev => ({
+            ...prev,
+            [selectedElderId]: normalized
+          }));
+        }
+      } catch (e) {
+        console.error('Error fetching routines:', e);
+      }
+    };
+    fetchRoutines();
+  }, [selectedElderId]);
+
+  // Fetch messages from Supabase
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('caregiver_id', session.user.id)
+          .order('created_at', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          setMessages(data.map(m => ({
+            id: m.id,
+            from: m.sender,
+            text: m.text,
+            timestamp: new Date(m.created_at),
+            isRead: true,
+            isVocalized: true
+          })));
+        }
+      } catch (e) {
+        console.error('Error fetching messages:', e);
+      }
+    };
+    fetchMessages();
+  }, []);
+
+  const handleSaveProfile = async (updatedProfile) => {
+    setProfile(updatedProfile);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase
+          .from('profiles')
+          .update({
+            full_name: updatedProfile.name,
+            notifications: updatedProfile.notifications
+          })
+          .eq('id', session.user.id);
+      }
+    } catch (e) {
+      console.error('Error saving profile to Supabase:', e);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,7 +248,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
           profile={profile}
-          onSave={setProfile}
+          onSave={handleSaveProfile}
           onLogout={onLogout}
         />
 
@@ -203,7 +266,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
                   <div className="relative mt-4">
                     <select
                       value={selectedElderId}
-                      onChange={(e) => setSelectedElderId(Number(e.target.value))}
+                      onChange={(e) => setSelectedElderId(e.target.value)}
                       className="appearance-none bg-white dark:bg-prussian-blue-900 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl pl-4 pr-9 py-2 text-xs font-bold text-slate-700 dark:text-prussian-blue-50 outline-hidden focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-baltic-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition cursor-pointer"
                     >
                       {elders.map((elder) => (
@@ -415,6 +478,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
               {currentView === 'rutinas' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
                   <RoutinesView 
+                    elderId={selectedElderId}
                     routines={elderRoutines} 
                     setRoutines={(updatedRoutines) => {
                       setRoutinesByElder(prev => {
@@ -431,7 +495,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
 
               {currentView === 'contactos' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
-                  <ContactsView />
+                  <ContactsView elderId={selectedElderId} />
                 </div>
               )}
 
@@ -470,7 +534,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles
 
               {currentView === 'actividad' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
-                  <ActivityLogView />
+                  <ActivityLogView elderId={selectedElderId} />
                 </div>
               )}
 

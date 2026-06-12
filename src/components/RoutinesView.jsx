@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SearchBar from './ui/SearchBar';
 import FilterSelect from './ui/FilterSelect';
+import { supabase } from '../supabase';
 import DataTable from './ui/DataTable';
 import { CalendarRange, Plus, Edit2, Trash2, Clock, Calendar, Check, X, AlertCircle } from 'lucide-react';
 import { generateOccurrences, describeRecurrenceRule } from '../utils/recurrence';
@@ -122,7 +123,7 @@ const getNextOccurrenceDate = (rule, currentStartDateStr) => {
   return null;
 };
 
-export default function RoutinesView({ routines = [], setRoutines }) {
+export default function RoutinesView({ elderId, routines = [], setRoutines }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -516,16 +517,49 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     };
 
     if (selectedRoutine) {
-      // Edit Routine
+      // Edit Routine in Supabase
+      supabase.from('routines').update({
+        name: updatedData.name,
+        description: updatedData.description,
+        repeat: updatedData.repeat,
+        recurrence_rule: updatedData.recurrenceRule,
+        start_date: updatedData.startDate,
+        end_date: updatedData.endDate,
+        time: updatedData.time,
+        urgency: updatedData.urgency,
+        category: updatedData.category
+      }).eq('id', selectedRoutine.id).then(({ error }) => {
+        if (error) console.error('Error updating routine in Supabase:', error);
+      });
+
+      // Update locally
       setRoutines(prev => prev.map(r => r.id === selectedRoutine.id ? {
         ...r,
         ...updatedData
       } : r));
     } else {
-      // Create Routine
-      const newId = routines.length > 0 ? Math.max(...routines.map(r => r.id)) + 1 : 1;
+      // Create Routine in Supabase
+      const tempId = crypto.randomUUID(); // Temporary local UUID before DB returns it, or just use UUID directly
+      supabase.from('routines').insert({
+        id: tempId,
+        elder_id: elderId,
+        name: updatedData.name,
+        description: updatedData.description,
+        repeat: updatedData.repeat,
+        recurrence_rule: updatedData.recurrenceRule,
+        start_date: updatedData.startDate,
+        end_date: updatedData.endDate,
+        time: updatedData.time,
+        status: 'pending',
+        urgency: updatedData.urgency,
+        category: updatedData.category
+      }).then(({ error }) => {
+        if (error) console.error('Error inserting routine in Supabase:', error);
+      });
+
+      // Update locally
       setRoutines(prev => [...prev, {
-        id: newId,
+        id: tempId,
         status: 'pending',
         ...updatedData
       }]);
@@ -542,6 +576,12 @@ export default function RoutinesView({ routines = [], setRoutines }) {
 
   const handleConfirmDelete = () => {
     if (routineToDelete) {
+      // Delete in Supabase
+      supabase.from('routines').delete().eq('id', routineToDelete.id).then(({ error }) => {
+        if (error) console.error('Error deleting routine from Supabase:', error);
+      });
+
+      // Delete locally
       setRoutines(prev => prev.filter(r => r.id !== routineToDelete.id));
       setIsDeleteOpen(false);
       setRoutineToDelete(null);
@@ -554,6 +594,14 @@ export default function RoutinesView({ routines = [], setRoutines }) {
     const completedAtVal = nextStatus === 'completed' 
       ? new Date().toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false }) 
       : null;
+
+    // Update in Supabase
+    supabase.from('routines').update({
+      status: nextStatus,
+      completed_at: nextStatus === 'completed' ? new Date().toISOString() : null
+    }).eq('id', routine.id).then(({ error }) => {
+      if (error) console.error('Error toggling routine status in Supabase:', error);
+    });
 
     setRoutines(prev => {
       // 1. Toggle status of current routine
@@ -574,7 +622,26 @@ export default function RoutinesView({ routines = [], setRoutines }) {
           );
           
           if (!alreadyExists) {
-            const nextId = nextRoutines.length > 0 ? Math.max(...nextRoutines.map(r => r.id)) + 1 : 1;
+            const nextId = crypto.randomUUID();
+            
+            // Insert next occurrence in Supabase
+            supabase.from('routines').insert({
+              id: nextId,
+              elder_id: elderId,
+              name: routine.name,
+              description: routine.description,
+              repeat: routine.repeat,
+              recurrence_rule: routine.recurrenceRule,
+              start_date: nextDate,
+              end_date: routine.endDate || null,
+              time: routine.time,
+              status: 'pending',
+              urgency: routine.urgency || 'medium',
+              category: routine.category || 'general'
+            }).then(({ error }) => {
+              if (error) console.error('Error inserting next occurrence in Supabase:', error);
+            });
+
             const startFormatted = formatDateToDDMMYY(nextDate);
             nextRoutines.push({
               id: nextId,

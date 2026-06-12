@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchBar from './ui/SearchBar';
 import FilterSelect from './ui/FilterSelect';
 import DataTable from './ui/DataTable';
 import { Phone, Users, ShieldAlert, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { supabase } from '../supabase';
 
 const mockContacts = [
   {
@@ -48,10 +49,41 @@ const mockContacts = [
   }
 ];
 
-export default function ContactsView() {
+export default function ContactsView({ elderId }) {
   const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [contacts, setContacts] = useState(mockContacts);
+
+  useEffect(() => {
+    if (!elderId) return;
+
+    const fetchContacts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('sos_contacts')
+          .select('*')
+          .eq('elder_id', elderId)
+          .order('name', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          setContacts(data.map(c => ({
+            id: c.id,
+            name: c.name,
+            relation: c.relation,
+            phone: c.phone,
+            status: c.available ? 'disponible' : 'no-disponible',
+            priority: c.relation.toLowerCase().includes('emergencia') || c.relation.toLowerCase().includes('hijo') ? 'Crítica' : 'Alta'
+          })));
+        } else {
+          setContacts(mockContacts);
+        }
+      } catch (e) {
+        console.error('Error fetching contacts:', e);
+      }
+    };
+    fetchContacts();
+  }, [elderId]);
 
   const statusOptions = [
     { value: 'all', label: t('contacts.filters.all') },
@@ -61,7 +93,7 @@ export default function ContactsView() {
   ];
 
   // Filtering Logic
-  const filteredContacts = mockContacts.filter(contact => {
+  const filteredContacts = contacts.filter(contact => {
     const matchesSearch = 
       contact.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       contact.relation.toLowerCase().includes(searchTerm.toLowerCase());
