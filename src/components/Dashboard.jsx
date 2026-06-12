@@ -13,13 +13,14 @@ import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Dashboard({ adminName = "ADMIN", onLogout }) {
+export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles }) {
   const { t } = useLanguage();
   const [revealed, setRevealed] = useState(false);
   const [currentView, setCurrentView] = useState('home');
   const [isOpen, setIsOpen] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
-  const [selectedElderId, setSelectedElderId] = useState(mockElderProfiles[0].id);
+  const elders = elderProfiles && elderProfiles.length > 0 ? elderProfiles : mockElderProfiles;
+  const [selectedElderId, setSelectedElderId] = useState(elders[0].id);
   const [isBotOnline, setIsBotOnline] = useState(true);
   const [isBotOn, setIsBotOn] = useState(false);
   const [isTracking, setIsTracking] = useState(true);
@@ -32,6 +33,15 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
   });
 
   const [routinesByElder, setRoutinesByElder] = useState(() => {
+    // If the caregiver registered their own elder profiles, start with empty routines for each
+    if (elderProfiles && elderProfiles.length > 0) {
+      const empty = {};
+      elderProfiles.forEach((elder) => {
+        empty[elder.id] = [];
+      });
+      return empty;
+    }
+
     // Normalize mockRoutinesByElder so that they have 'name' and 'description' properties and full recurrence support
     const normalized = {};
     Object.entries(mockRoutinesByElder).forEach(([elderId, list]) => {
@@ -109,7 +119,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const selectedElder = mockElderProfiles.find(e => e.id === selectedElderId) || mockElderProfiles[0];
+  const selectedElder = elders.find(e => e.id === selectedElderId) || elders[0];
   const elderRoutines = routinesByElder[selectedElderId] || [];
   const completedRoutines = elderRoutines.filter(r => r.status === 'completed').length;
   const totalRoutines = elderRoutines.length;
@@ -189,14 +199,14 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
                 <p className="text-slate-500 dark:text-prussian-blue-300 text-sm sm:text-base mt-3">{t('dashboard.subtitle')}</p>
 
                 {/* Elder profile switcher */}
-                {mockElderProfiles.length > 1 && (
+                {elders.length > 1 && (
                   <div className="relative mt-4">
                     <select
                       value={selectedElderId}
                       onChange={(e) => setSelectedElderId(Number(e.target.value))}
                       className="appearance-none bg-white dark:bg-prussian-blue-900 border border-slate-200 dark:border-prussian-blue-700 rounded-2xl pl-4 pr-9 py-2 text-xs font-bold text-slate-700 dark:text-prussian-blue-50 outline-hidden focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-baltic-blue-500/25 focus:border-blue-500 dark:focus:border-baltic-blue-500 transition cursor-pointer"
                     >
-                      {mockElderProfiles.map((elder) => (
+                      {elders.map((elder) => (
                         <option key={elder.id} value={elder.id}>
                           {elder.name} · {elder.room}
                         </option>
@@ -454,7 +464,7 @@ export default function Dashboard({ adminName = "ADMIN", onLogout }) {
 
               {currentView === 'salud' && (
                 <div className="bg-white dark:bg-prussian-blue-900 border border-slate-100 dark:border-prussian-blue-800 rounded-3xl p-6 shadow-xs">
-                  <HealthView elderId={selectedElderId} elderName={selectedElder.name} />
+                  <HealthView elderId={selectedElderId} elderName={selectedElder.name} elder={selectedElder} />
                 </div>
               )}
 

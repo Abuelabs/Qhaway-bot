@@ -1,9 +1,9 @@
 import React from 'react';
-import { HeartPulse, Activity, Droplet, Thermometer, Moon, Footprints, Stethoscope } from 'lucide-react';
+import { HeartPulse, Activity, Droplet, Thermometer, Moon, Footprints, Stethoscope, ShieldCheck, AlertCircle, Phone, User } from 'lucide-react';
 import { mockVitalsByElder } from '../data/mockData';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function HealthView({ elderId = 1, elderName = '' }) {
+export default function HealthView({ elderId = 1, elderName = '', elder = null }) {
   const { t } = useLanguage();
   const vitals = mockVitalsByElder[elderId] || mockVitalsByElder[1];
 
@@ -53,6 +53,87 @@ export default function HealthView({ elderId = 1, elderName = '' }) {
           </div>
         ))}
       </div>
+
+      {/* Medical record / Ficha médica */}
+      {elder && (
+        <div className="bg-white dark:bg-prussian-blue-800/40 border border-slate-100 dark:border-prussian-blue-800 rounded-2xl p-5 space-y-4">
+          <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
+            <User className="w-4 h-4 text-blue-600 dark:text-baltic-blue-400" />
+            Ficha médica
+          </h3>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {elder.age != null && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Edad</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-prussian-blue-50 mt-0.5">{elder.age} años</p>
+              </div>
+            )}
+            {elder.sex && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Sexo</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-prussian-blue-50 mt-0.5">{elder.sex}</p>
+              </div>
+            )}
+            {elder.bloodType && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Tipo de sangre</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-prussian-blue-50 mt-0.5">{elder.bloodType}</p>
+              </div>
+            )}
+            {elder.room && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Ubicación</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-prussian-blue-50 mt-0.5">{elder.room}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-prussian-blue-800">
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-wine-950/50 text-rose-600 dark:text-rose-wine-400 flex items-center justify-center shrink-0">
+                <Stethoscope className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Condiciones médicas</p>
+                <p className="text-sm text-slate-700 dark:text-prussian-blue-100 mt-0.5">{elder.conditions || elder.condition || 'Ninguna registrada'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-chocolate-950/50 text-amber-600 dark:text-chocolate-400 flex items-center justify-center shrink-0">
+                <AlertCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Alergias</p>
+                <p className="text-sm text-slate-700 dark:text-prussian-blue-100 mt-0.5">{elder.allergies || 'Ninguna registrada'}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-baltic-blue-950/50 text-blue-600 dark:text-baltic-blue-400 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Seguro de salud</p>
+                <p className="text-sm text-slate-700 dark:text-prussian-blue-100 mt-0.5">{elder.insurance || 'Sin seguro de salud'}</p>
+              </div>
+            </div>
+
+            {elder.emergencyContactName && (
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-green-50 dark:bg-verdigris-950/50 text-green-600 dark:text-verdigris-400 flex items-center justify-center shrink-0">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-prussian-blue-400 uppercase tracking-wider">Contacto de emergencia</p>
+                  <p className="text-sm text-slate-700 dark:text-prussian-blue-100 mt-0.5">{elder.emergencyContactName} · {elder.emergencyContactPhone}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <p className="text-[11px] text-slate-400 dark:text-prussian-blue-500 leading-relaxed">
         {t('health.disclaimer')}

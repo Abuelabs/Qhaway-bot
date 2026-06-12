@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Heart, Lock, Unlock } from 'lucide-react'
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, onSwitchToRegister }) {
   const [welcomeClicked, setWelcomeClicked] = useState(false)
   
   // Stages: 'welcome' | 'typing-part1' | 'user-input' | 'typing-part2' | 'email-input' | 'typing-part3' | 'password-input' | 'unlocking'
@@ -189,6 +189,20 @@ export default function Login({ onLoginSuccess }) {
               <p className="text-slate-400 text-sm sm:text-base font-semibold tracking-wide flex items-center justify-center gap-2 opacity-85 hover:opacity-100 transition-opacity">
                 Haz clic en cualquier parte de la pantalla para iniciar sesión
               </p>
+              {onSwitchToRegister && (
+                <p className="text-slate-500 text-xs sm:text-sm font-semibold mt-6 relative z-40">
+                  ¿Aún no tienes una cuenta?{' '}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onSwitchToRegister()
+                    }}
+                    className="text-blue-500 hover:text-blue-400 font-bold cursor-pointer underline-offset-2 hover:underline"
+                  >
+                    Regístrate aquí
+                  </button>
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -316,6 +330,18 @@ export default function Login({ onLoginSuccess }) {
               )}
 
             </div>
+
+            {onSwitchToRegister && (
+              <p className="text-slate-500 text-xs sm:text-sm font-semibold mt-6 text-center">
+                ¿Aún no tienes una cuenta?{' '}
+                <button
+                  onClick={onSwitchToRegister}
+                  className="text-blue-500 hover:text-blue-400 font-bold cursor-pointer underline-offset-2 hover:underline"
+                >
+                  Regístrate aquí
+                </button>
+              </p>
+            )}
           </div>
         )}
 

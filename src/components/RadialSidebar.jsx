@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, CalendarRange, Users, MessageSquare, BookOpen, Stethoscope, Bot, History, X } from 'lucide-react';
-import { useLanguage } from '../context/LanguageContext';
 
 export default function RadialSidebar({ currentView, onViewChange }) {
-  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [windowHeight, setWindowHeight] = useState(window.innerHeight);
   const [buttonY, setButtonY] = useState(window.innerHeight / 2 - 24);
@@ -43,9 +41,7 @@ export default function RadialSidebar({ currentView, onViewChange }) {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [isOpen, windowHeight]);
 
-  // Persists when open until clicked outside
-
-  // Close menu if user clicks anywhere outside the radial menu container
+  // Close menu if user clicks anywhere outside the sidebar container
   useEffect(() => {
     if (!isOpen) return;
 
@@ -71,16 +67,16 @@ export default function RadialSidebar({ currentView, onViewChange }) {
     setIsOpen(!isOpen);
   };
 
-  // Shortcut items setup
+  // Menu items, displayed top-to-bottom as a dropdown list
   const menuItems = [
-    { id: 'home', icon: Home, label: 'Inicio', bgHover: 'hover:bg-blue-500/10 dark:hover:bg-blue-500/20 hover:text-blue-600 dark:hover:text-blue-400' },
-    { id: 'rutinas', icon: CalendarRange, label: 'Rutinas', bgHover: 'hover:bg-emerald-500/10 dark:hover:bg-emerald-500/20 hover:text-emerald-600 dark:hover:text-emerald-400' },
-    { id: 'contactos', icon: Users, label: 'Contactos', bgHover: 'hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400' },
-    { id: 'mensajes', icon: MessageSquare, label: 'Mensajes', bgHover: 'hover:bg-purple-500/10 dark:hover:bg-purple-500/20 hover:text-purple-600 dark:hover:text-purple-400' },
-    { id: 'salud', icon: Stethoscope, label: 'Salud', bgHover: 'hover:bg-rose-500/10 dark:hover:bg-rose-500/20 hover:text-rose-600 dark:hover:text-rose-400' },
-    { id: 'biblioteca', icon: BookOpen, label: 'Biblioteca', bgHover: 'hover:bg-orange-500/10 dark:hover:bg-orange-500/20 hover:text-orange-600 dark:hover:text-orange-400' },
-    { id: 'robot', icon: Bot, label: 'Robot', bgHover: 'hover:bg-cyan-500/10 dark:hover:bg-cyan-500/20 hover:text-cyan-600 dark:hover:text-cyan-400' },
-    { id: 'actividad', icon: History, label: 'Actividad', bgHover: 'hover:bg-amber-500/10 dark:hover:bg-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400' },
+    { id: 'home', icon: Home, label: 'Inicio', activeColor: 'text-blue-600 dark:text-baltic-blue-400', activeBg: 'bg-blue-50 dark:bg-baltic-blue-950/40' },
+    { id: 'rutinas', icon: CalendarRange, label: 'Rutinas', activeColor: 'text-emerald-600 dark:text-emerald-400', activeBg: 'bg-emerald-50 dark:bg-emerald-950/30' },
+    { id: 'contactos', icon: Users, label: 'Contactos', activeColor: 'text-indigo-600 dark:text-indigo-400', activeBg: 'bg-indigo-50 dark:bg-indigo-950/30' },
+    { id: 'mensajes', icon: MessageSquare, label: 'Mensajes', activeColor: 'text-purple-600 dark:text-purple-400', activeBg: 'bg-purple-50 dark:bg-purple-950/30' },
+    { id: 'salud', icon: Stethoscope, label: 'Salud', activeColor: 'text-rose-600 dark:text-rose-400', activeBg: 'bg-rose-50 dark:bg-rose-950/30' },
+    { id: 'biblioteca', icon: BookOpen, label: 'Biblioteca', activeColor: 'text-orange-600 dark:text-orange-400', activeBg: 'bg-orange-50 dark:bg-orange-950/30' },
+    { id: 'robot', icon: Bot, label: 'Robot', activeColor: 'text-cyan-600 dark:text-cyan-400', activeBg: 'bg-cyan-50 dark:bg-cyan-950/30' },
+    { id: 'actividad', icon: History, label: 'Actividad', activeColor: 'text-amber-600 dark:text-amber-400', activeBg: 'bg-amber-50 dark:bg-amber-950/30' },
   ];
 
   // Dimensional config for positioning
@@ -90,40 +86,23 @@ export default function RadialSidebar({ currentView, onViewChange }) {
   // Vertical position: top-left (80px, below the 64px navbar) when open, centered vertically when closed
   const anchorTop = isOpen ? 80 : buttonY;
 
-  // Center coordinate of the main bubble
-  const centerX = anchorLeft + bubbleSize / 2;
-  const centerY = anchorTop + bubbleSize / 2;
+  // List item dimensions
+  const itemWidth = 196;
+  const itemHeight = 44;
+  const itemGap = 8;
 
   return (
     <div
       id="radial-sidebar-container"
       className="fixed inset-0 pointer-events-none z-50"
     >
-      {/* Radial Items */}
+      {/* Dropdown list items, stacked top to bottom below the home button */}
       {menuItems.map((item, idx) => {
         const IconComponent = item.icon;
-        const count = menuItems.length;
-
-        // Distribute the items across an arc of 90 degrees (from 0 to 90 deg)
-        // 0 deg points directly to the right, 90 deg points straight down.
-        const angleDeg = (idx * 90) / (count - 1);
-        const angleRad = (angleDeg * Math.PI) / 180;
-
-        const itemSize = 40; // Size of shortcut items (w-10 h-10)
-
-        // Stagger items into 2 rows (inner arc at 90px radius, outer arc at 150px radius)
-        const isOuterRow = idx % 2 !== 0;
-        const currentRadius = isOuterRow ? 150 : 90; // px
-
-        // Coordinates when deployed
-        const targetLeft = centerX + currentRadius * Math.cos(angleRad) - itemSize / 2;
-        const targetTop = centerY + currentRadius * Math.sin(angleRad) - itemSize / 2;
-
-        // Coordinates when retracted (centered inside the main bubble)
-        const closedLeft = anchorLeft + bubbleSize / 2 - itemSize / 2;
-        const closedTop = anchorTop + bubbleSize / 2 - itemSize / 2;
-
         const isCurrent = currentView === item.id;
+
+        const openTop = anchorTop + bubbleSize + 10 + idx * (itemHeight + itemGap);
+        const closedTop = anchorTop + bubbleSize / 2 - itemHeight / 2;
 
         return (
           <button
@@ -134,26 +113,21 @@ export default function RadialSidebar({ currentView, onViewChange }) {
               setIsOpen(false);
             }}
             style={{
-              left: isOpen ? `${targetLeft}px` : `${closedLeft}px`,
-              top: isOpen ? `${targetTop}px` : `${closedTop}px`,
-              transform: isOpen ? 'scale(1)' : 'scale(0)',
+              left: `${anchorLeft}px`,
+              top: isOpen ? `${openTop}px` : `${closedTop}px`,
+              width: `${itemWidth}px`,
+              height: `${itemHeight}px`,
+              transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(-12px) scale(0.92)',
               opacity: isOpen ? 1 : 0,
-              transitionDelay: isOpen ? `${idx * 40}ms` : '0ms',
-              width: `${itemSize}px`,
-              height: `${itemSize}px`,
+              transitionDelay: isOpen ? `${idx * 35}ms` : '0ms',
             }}
-            className={`absolute flex items-center justify-center rounded-full shadow-lg border cursor-pointer group transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isCurrent
-                ? 'bg-blue-600 dark:bg-baltic-blue-500 text-white border-blue-600 dark:border-baltic-blue-500 scale-110 shadow-blue-500/20 dark:shadow-baltic-blue-500/20'
-                : `bg-white/95 dark:bg-prussian-blue-900/95 border-slate-200 dark:border-prussian-blue-800 text-slate-700 dark:text-prussian-blue-200 ${item.bgHover}`
-              } pointer-events-auto`}
-            title={item.label}
+            className={`absolute flex items-center gap-3 px-4 rounded-2xl shadow-lg border cursor-pointer group transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${isCurrent
+                ? `${item.activeBg} ${item.activeColor} border-current/20 font-bold`
+                : 'bg-white/95 dark:bg-prussian-blue-900/95 border-slate-200 dark:border-prussian-blue-800 text-slate-700 dark:text-prussian-blue-200 hover:bg-slate-50 dark:hover:bg-prussian-blue-800'
+              } ${isOpen ? 'pointer-events-auto' : 'pointer-events-none'}`}
           >
-            <IconComponent className="w-5 h-5" />
-
-            {/* Tooltip */}
-            <span className="absolute whitespace-nowrap bg-slate-900/90 dark:bg-prussian-blue-950/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 left-12 top-1/2 -translate-y-1/2 z-50">
-              {item.label}
-            </span>
+            <IconComponent className="w-5 h-5 shrink-0" />
+            <span className="text-sm font-bold whitespace-nowrap">{item.label}</span>
           </button>
         );
       })}
@@ -173,6 +147,7 @@ export default function RadialSidebar({ currentView, onViewChange }) {
             ? 'bg-rose-500 hover:bg-rose-600 text-white border-rose-500 scale-105 rotate-90'
             : 'bg-blue-600 text-white border-blue-600 dark:bg-baltic-blue-500 dark:border-baltic-blue-500 hover:bg-blue-700 dark:hover:bg-baltic-blue-600 hover:scale-110 active:scale-95'
           }`}
+        title="Menú"
       >
         {isOpen ? <X className="w-5 h-5" /> : <Home className="w-5 h-5" />}
       </button>
