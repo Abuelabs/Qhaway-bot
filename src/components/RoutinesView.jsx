@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import SearchBar from './ui/SearchBar';
 import FilterSelect from './ui/FilterSelect';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabaseClient';
 import DataTable from './ui/DataTable';
 import { CalendarRange, Plus, Edit2, Trash2, Clock, Calendar, Check, X, AlertCircle } from 'lucide-react';
 import { generateOccurrences, describeRecurrenceRule } from '../utils/recurrence';

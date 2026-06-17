@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Heart, Lock, Unlock } from 'lucide-react'
-import { supabase } from '../supabase'
+import { supabase } from '../lib/supabaseClient'
 
 export default function Login({ onLoginSuccess, onStartTransition, onSwitchToRegister }) {
   const [welcomeClicked, setWelcomeClicked] = useState(false)

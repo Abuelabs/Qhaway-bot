@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Heart, User, Users, ShieldCheck, Plus, Trash2, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react'
-import { supabase } from '../supabase'
+import { supabase } from '../lib/supabaseClient'
 
 // Health insurance providers available in Perú
 export const HEALTH_INSURANCE_OPTIONS = [

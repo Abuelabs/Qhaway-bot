@@ -12,7 +12,7 @@ import { CalendarRange, Users, MessageSquare, BookOpen, ArrowLeft, Bot, Stethosc
 import { mockElderProfiles, mockRoutinesByElder } from '../data/mockData';
 import RoutinesProgressBar from './ui/RoutinesProgressBar';
 import { useLanguage } from '../context/LanguageContext';
-import { supabase } from '../supabase';
+import { supabase } from '../lib/supabaseClient';
 
 export default function Dashboard({ adminName = "ADMIN", onLogout, elderProfiles }) {
   const { t } = useLanguage();

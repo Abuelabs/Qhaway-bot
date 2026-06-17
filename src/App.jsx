@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import Login from './components/Login'
 import Register from './components/Register'
 import Dashboard from './components/Dashboard'
-import { supabase } from './supabase'
+import { supabase } from './lib/supabaseClient'
 
 function App() {
   const [authView, setAuthView] = useState('login') // 'login' | 'register'
